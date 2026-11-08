@@ -270,14 +270,31 @@ class MainActivity : Activity() {
             val red = Color.red(pixel)
             val green = Color.green(pixel)
             val blue = Color.blue(pixel)
-            // The tile background is blue/navy; gold logo pixels are warm and are preserved.
-            val isBlueBackdrop = blue > red + 7 && blue >= green - 18 && red < 175 && green < 195
-            if (!isBlueBackdrop) continue
-            bitmap.setPixel(x, y, Color.TRANSPARENT)
+            // Use a global color key: the rounded-square backdrop is a blue gradient
+            // and may be separated from the corners by a dark outline.
+            for (py in y until minOf(y + 1, height)) {
+                for (px in x until minOf(x + 1, width)) {
+                    val p = bitmap.getPixel(px, py)
+                    val r = Color.red(p)
+                    val g = Color.green(p)
+                    val b = Color.blue(p)
+                    if (b > r + 18 && b > g + 4 && r < 115 && g < 145) {
+                        bitmap.setPixel(px, py, Color.TRANSPARENT)
+                    }
+                }
+            }
             if (x > 0) queue.add(index - 1)
             if (x < width - 1) queue.add(index + 1)
             if (y > 0) queue.add(index - width)
             if (y < height - 1) queue.add(index + width)
+        }
+        // Final pass removes every remaining blue backdrop pixel, including enclosed areas.
+        for (py in 0 until height) for (px in 0 until width) {
+            val p = bitmap.getPixel(px, py)
+            val r = Color.red(p); val g = Color.green(p); val b = Color.blue(p)
+            if (b > r + 18 && b > g + 4 && r < 115 && g < 145) {
+                bitmap.setPixel(px, py, Color.TRANSPARENT)
+            }
         }
         return bitmap
     }
@@ -289,7 +306,7 @@ class MainActivity : Activity() {
         window.decorView.systemUiVisibility = 0
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(8),dp(3),dp(8),dp(3))
+            setPadding(dp(8),0,dp(8),0)
             setBackgroundColor(pale)
         }
         val scroll = ScrollView(this).apply { isFillViewport = true }
@@ -302,9 +319,9 @@ class MainActivity : Activity() {
         }
         val logoWrap = FrameLayout(this).apply {
             setBackgroundColor(Color.rgb(5,25,59))
-            addView(brandMark, FrameLayout.LayoutParams(dp(72),dp(72),Gravity.CENTER))
+            addView(brandMark, FrameLayout.LayoutParams(dp(82),dp(82),Gravity.CENTER))
         }
-        page.addView(logoWrap, LinearLayout.LayoutParams(-1, dp(72)).apply { bottomMargin = dp(1) })
+        page.addView(logoWrap, LinearLayout.LayoutParams(-1, dp(84)).apply { bottomMargin = dp(2) })
 
         val slogan = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -312,18 +329,22 @@ class MainActivity : Activity() {
             setPadding(dp(2), dp(1), dp(2), dp(1))
             setBackgroundColor(Color.TRANSPARENT)
         }
-        slogan.addView(text("ساماندهی هوشمند فایل‌های ملکی", 13f, navy, true).apply {
+        slogan.addView(text("ساماندهی هوشمند فایل‌های ملکی", 14f, navy, true).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
-        })
-        slogan.addView(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 8f, muted).apply {
+            includeFontPadding = false
+            setPadding(0, dp(2), 0, dp(2))
+        }, LinearLayout.LayoutParams(-1, dp(23)))
+        slogan.addView(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 9f, muted).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
-        })
-        page.addView(slogan, LinearLayout.LayoutParams(-1, dp(30)).apply { bottomMargin = dp(2) })
+            includeFontPadding = false
+            setPadding(0, dp(1), 0, dp(1))
+        }, LinearLayout.LayoutParams(-1, dp(17)))
+        page.addView(slogan, LinearLayout.LayoutParams(-1, dp(42)).apply { bottomMargin = dp(4) })
 
         search = field("عنوان")
-        page.addView(search, LinearLayout.LayoutParams(-1, dp(34)).apply { bottomMargin = dp(1) })
+        page.addView(search, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(3) })
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         page.addView(list)
         search.addTextChangedListener(object: TextWatcher {
@@ -357,7 +378,7 @@ class MainActivity : Activity() {
         addText.addView(text("ثبت ملک جدید", 13f, Color.WHITE, true))
         addText.addView(text("افزودن فایل و مشخصات ملک", 8f, Color.rgb(220,230,242)))
         addCard.addView(addText, LinearLayout.LayoutParams(0,-2,1f))
-        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(42)).apply { bottomMargin = dp(2) })
+        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(52)).apply { bottomMargin = dp(5) })
 
         val categoryTitle = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -406,7 +427,7 @@ class MainActivity : Activity() {
                     includeFontPadding = false
                     setPadding(dp(2), dp(3), dp(2), dp(3))
                 })
-                row.addView(tile, LinearLayout.LayoutParams(0,dp(56),1f).apply {
+                row.addView(tile, LinearLayout.LayoutParams(0,dp(70),1f).apply {
                     marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(5)
                 })
             }
@@ -423,9 +444,12 @@ class MainActivity : Activity() {
         }
         credit.addView(text("طراح: مهندس رئوف نژاد", 11f, navy, true).apply {
             gravity = Gravity.CENTER
-        })
-        root.addView(credit, LinearLayout.LayoutParams(-1, dp(24)).apply {
-            topMargin = dp(0); bottomMargin = dp(0)
+            includeFontPadding = true
+            setPadding(0, 0, 0, 0)
+            minHeight = dp(24)
+        }, LinearLayout.LayoutParams(-1, -2))
+        root.addView(credit, LinearLayout.LayoutParams(-1, dp(40)).apply {
+            topMargin = dp(2); bottomMargin = dp(8)
         })
         setContentView(root)
         list.removeAllViews()

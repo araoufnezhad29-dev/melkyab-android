@@ -52,8 +52,8 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
     fun all(query: String = ""): List<Property> {
         val result = mutableListOf<Property>()
         val c = readableDatabase.rawQuery(
-            "SELECT * FROM properties WHERE title LIKE ? OR city LIKE ? OR notes LIKE ? ORDER BY id DESC",
-            arrayOf("%" + query + "%", "%" + query + "%", "%" + query + "%")
+            "SELECT * FROM properties WHERE title LIKE ? OR notes LIKE ? ORDER BY id DESC",
+            arrayOf("%" + query + "%", "%" + query + "%")
         )
         c.use {
             while (it.moveToNext()) result.add(Property(
@@ -271,7 +271,7 @@ class MainActivity : Activity() {
                     background = rounded(Color.WHITE, 16, Color.rgb(222,228,237))
                     isClickable = true
                     isFocusable = true
-                    setOnClickListener { activeSection = category; search.setText(""); renderSection() }
+                    setOnClickListener { activeSection = category; dealFilter = "همه"; search.setText(""); renderSection() }
                 }
                 val symbol = when(category) {
                     "فروش" -> "◇"
@@ -418,7 +418,7 @@ class MainActivity : Activity() {
         }
         card.addView(text(p.title.ifBlank { "بدون عنوان" }, if (compact) 11f else 17f, navy, true))
         card.addView(text(p.deal, if (compact) 10f else 12f, blue, true))
-        card.addView(text(p.kind + (if (p.city.isNotBlank()) "\n" + p.city else ""), if (compact) 9f else 13f, muted))
+        card.addView(text(p.kind, if (compact) 9f else 13f, muted))
         card.addView(text(p.area + " متر", if (compact) 9f else 12f, muted))
         val money = when (p.deal) {
             "فروش" -> "قیمت: " + formatMoney(p.price)
@@ -476,7 +476,7 @@ class MainActivity : Activity() {
                 setSelection(values.indexOf(current).takeIf { it >= 0 } ?: 0)
             }.also { content.addView(it) }
         }
-        content.addView(title); content.addView(city); content.addView(area)
+        content.addView(title); content.addView(area)
         val priceLabel = text("قیمت فروش", 12f, muted, true)
         val depositLabel = text("مبلغ رهن", 12f, muted, true)
         val rentLabel = text("اجاره ماهانه", 12f, muted, true)
@@ -531,7 +531,7 @@ class MainActivity : Activity() {
                     val deal = dealSpinner.selectedItem.toString()
                     val photos = JSONArray().apply { selectedPhotos.forEach { put(it) } }.toString()
                     db.save(Property(existing?.id ?: 0L,spinner.selectedItem.toString(),
-                        title.text.toString(),city.text.toString(),area.text.toString(),
+                        title.text.toString(),"",area.text.toString(),
                         if (deal == "فروش") rawMoney(price.text.toString()) else "",
                         if (deal != "فروش") rawMoney(deposit.text.toString()) else "",
                         if (deal == "رهن و اجاره") rawMoney(rent.text.toString()) else "",

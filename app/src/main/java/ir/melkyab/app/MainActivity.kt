@@ -251,6 +251,13 @@ class MainActivity : Activity() {
             setPadding(dp(16),dp(18),dp(16),dp(18))
             background = rounded(navy, 20)
         }
+        val brandMark = ImageView(this).apply {
+            setImageResource(R.drawable.ic_melkyab_mark)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            background = rounded(Color.rgb(25,45,72), 22, Color.rgb(190,155,85))
+            setPadding(dp(10), dp(10), dp(10), dp(10))
+        }
+        header.addView(brandMark, LinearLayout.LayoutParams(dp(88), dp(88)).apply { bottomMargin = dp(12) })
         header.addView(text("ملک‌یاب", 28f, Color.WHITE, true).apply { gravity = Gravity.CENTER })
         header.addView(text("سامان‌دهی هوشمند فایل‌های ملکی", 12f, Color.rgb(215,224,236)).apply { gravity = Gravity.CENTER })
         page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })

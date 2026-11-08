@@ -251,6 +251,25 @@ class MainActivity : Activity() {
             .map { if (it in '0'..'9') ('۰'.code + it.code - '0'.code).toChar() else it }.joinToString("")
     }
 
+    private fun logoOnHeader(): android.graphics.Bitmap? {
+        val decoded = BitmapFactory.decodeResource(resources, R.drawable.ic_melkyab_mark) ?: return null
+        val bitmap = decoded.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+        for (y in 0 until bitmap.height) {
+            for (x in 0 until bitmap.width) {
+                val pixel = bitmap.getPixel(x, y)
+                val red = Color.red(pixel)
+                val green = Color.green(pixel)
+                val blue = Color.blue(pixel)
+                // Remove the logo file's own blue rounded-square backdrop.
+                // The header supplies one continuous navy background behind the gold artwork.
+                if (blue > red + 10 && blue >= green && red < 130 && green < 165) {
+                    bitmap.setPixel(x, y, Color.TRANSPARENT)
+                }
+            }
+        }
+        return bitmap
+    }
+
     private fun render() {
         window.statusBarColor = Color.rgb(5,25,59)
         window.navigationBarColor = pale
@@ -269,7 +288,7 @@ class MainActivity : Activity() {
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val brandMark = ImageView(this).apply {
-            setImageResource(R.drawable.ic_melkyab_mark)
+            setImageBitmap(logoOnHeader())
             scaleType = ImageView.ScaleType.FIT_CENTER
             setBackgroundColor(Color.TRANSPARENT)
             contentDescription = "لوگوی ملک‌یاب؛ خانه و ذره‌بین طلایی"

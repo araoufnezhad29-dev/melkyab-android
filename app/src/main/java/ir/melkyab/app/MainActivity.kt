@@ -550,38 +550,46 @@ class MainActivity : Activity() {
         val query = if (::search.isInitialized) search.text.toString() else ""
         val allItems = db.all()
         val found = if (query.isBlank()) allItems else allItems.filter { p ->
-            val q = query.lowercase().replace("ي","ی").replace("ك","ک")
-            val digits = q.map { ch -> when(ch) {
+            val normalized = query.map { ch -> when(ch) {
                 in '۰'..'۹' -> ('0'.code + ch.code - '۰'.code).toChar()
                 in '٠'..'٩' -> ('0'.code + ch.code - '٠'.code).toChar()
                 else -> ch
-            } }.joinToString("")
-            val searchable = listOf(p.title,p.notes,p.kind,p.deal,p.area,p.price,p.deposit,p.rent,p.address).joinToString(" ")
+            } }.joinToString("").lowercase().replace("ي","ی").replace("ك","ک")
+            val searchable = listOf(p.title,p.notes,p.kind,p.deal,p.address).joinToString(" ")
                 .lowercase().replace("ي","ی").replace("ك","ک")
-            val words = digits.split(Regex("[\\s,،٬]+")).filter { it.isNotBlank() }
-            val hasMoneyUnit = digits.contains("میلیارد") || digits.contains("میلیون") || digits.contains("هزار")
-            val numericQuery = Regex("\\d+").findAll(digits).map { it.value.toLongOrNull() ?: 0L }.toList()
-            val converted = numericQuery.mapIndexed { i, n ->
-                when {
-                    digits.contains("میلیارد") -> n * 1_000_000_000L
-                    digits.contains("میلیون") -> n * 1_000_000L
-                    digits.contains("هزار") -> n * 1_000L
-                    else -> n
+            val amountPattern = Regex("(\\d+)\\s*(میلیارد|میلیون|هزار)?")
+            val amountTokens = amountPattern.findAll(normalized).filter { it.groupValues[1].isNotBlank() }.toList()
+            val units = listOf("میلیارد","میلیون","هزار")
+            val textWords = normalized.replace(amountPattern, " ").split(Regex("[\\s,،٬]+"))
+                .filter { it.isNotBlank() && it !in units && it !in listOf("تا","حدود","قیمت","متر","متراژ") }
+            val textOk = textWords.all { word ->
+                searchable.contains(word) || (word == "پیش" && p.deal != "فروش") ||
+                    (word == "فروش" && p.deal == "فروش")
+            }
+            val numberOk = amountTokens.all { token ->
+                val number = token.groupValues[1].toLongOrNull() ?: 0L
+                val multiplier = when(token.groupValues[2]) {
+                    "میلیارد" -> 1_000_000_000L
+                    "میلیون" -> 1_000_000L
+                    "هزار" -> 1_000L
+                    else -> 1L
                 }
+                val amount = number * multiplier
+                val before = normalized.substring(0, token.range.first)
+                val value = when {
+                    before.contains("متر") || before.contains("متراژ") -> rawMoney(p.area).toLongOrNull() ?: 0L
+                    before.contains("اجاره") -> rawMoney(p.rent).toLongOrNull() ?: 0L
+                    before.contains("رهن") || before.contains("پیش") -> rawMoney(p.deposit).toLongOrNull() ?: 0L
+                    before.contains("فروش") || before.contains("قیمت") -> rawMoney(p.price).toLongOrNull() ?: 0L
+                    else -> listOf(p.price,p.deposit,p.rent).mapNotNull { rawMoney(it).toLongOrNull() }
+                        .any { v -> if (before.contains("تا")) v <= amount else v == amount || (amount > 0 && kotlin.math.abs(v-amount) <= amount/100) }
+                        .let { if (it) amount else Long.MIN_VALUE }
+                }
+                if (value == Long.MIN_VALUE) true
+                else if (before.contains("تا")) value <= amount
+                else value == amount || (amount > 0 && kotlin.math.abs(value-amount) <= amount/100)
             }
-            val textOk = words.filter { it.any { c -> c.isLetter() } && it !in listOf("تا","حدود") }
-                .all { searchable.contains(it) || (it == "پیش" && p.deal == "رهن و اجاره") }
-            val numberOk = if (converted.isEmpty()) true else converted.all { amount ->
-                val values = when {
-                    digits.contains("متر") -> listOf(p.area)
-                    digits.contains("رهن") || digits.contains("پیش") -> listOf(p.deposit)
-                    digits.contains("اجاره") -> listOf(p.rent)
-                    digits.contains("فروش") || digits.contains("قیمت") -> listOf(p.price)
-                    else -> listOf(p.price,p.deposit,p.rent,p.area)
-                }.mapNotNull { it.filter { c -> c.isDigit() }.toLongOrNull() }
-                values.any { v -> if (digits.contains("تا")) v <= amount else v == amount || (amount > 0 && kotlin.math.abs(v-amount) <= amount/100) }
-            }
-            textOk && numberOk && (hasMoneyUnit || converted.isEmpty() || numberOk)
+            textOk && numberOk
         }
         val section = activeSection
         val sectionItems = if (section == null) found else when(section) {
@@ -657,7 +665,7 @@ class MainActivity : Activity() {
         card.addView(text(p.kind, if (compact) 9f else 13f, muted))
         card.addView(text(p.area + " متر", if (compact) 9f else 12f, muted))
         if (p.address.isNotBlank()) card.addView(text("آدرس: " + p.address, if (compact) 8f else 11f, muted))
-        val sqm = p.area.filter { it.isDigit() }.toLongOrNull() ?: 0L
+        val sqm = rawMoney(p.area).toLongOrNull() ?: 0L
         val salePrice = p.price.toLongOrNull() ?: 0L
         if (p.deal == "فروش" && sqm > 0 && salePrice > 0) {
             card.addView(text("هر متر: " + formatMoney((salePrice / sqm).toString()) + " تومان", if (compact) 8f else 11f, Color.rgb(174,133,59), true))
@@ -677,6 +685,7 @@ class MainActivity : Activity() {
                 .setNegativeButton("انصراف",null).setPositiveButton("حذف") { _,_ -> db.delete(p.id); refreshList() }.show()
         }), LinearLayout.LayoutParams(if (compact) -1 else 0, dp(38), if (compact) 0f else 1f))
         card.addView(actions)
+        card.setOnClickListener { showPropertyDetails(p) }
         return card
     }
 
@@ -725,7 +734,7 @@ class MainActivity : Activity() {
             setPadding(dp(12), dp(10), dp(12), dp(10))
         }
         fun updatePricePerMeter() {
-            val sqm = area.text.toString().filter { it.isDigit() }.toLongOrNull() ?: 0L
+            val sqm = rawMoney(area.text.toString()).toLongOrNull() ?: 0L
             val total = rawMoney(price.text.toString()).toLongOrNull() ?: 0L
             pricePerMeter.text = if (sqm > 0 && total > 0) "قیمت هر متر: " + formatMoney((total / sqm).toString()) + " تومان" else "قیمت هر متر: —"
         }
@@ -790,7 +799,7 @@ class MainActivity : Activity() {
                     val deal = dealSpinner.selectedItem.toString()
                     val photos = JSONArray().apply { selectedPhotos.forEach { put(it) } }.toString()
                     db.save(Property(existing?.id ?: 0L,spinner.selectedItem.toString(),
-                        title.text.toString(),"",area.text.toString(),
+                        title.text.toString(),"",rawMoney(area.text.toString()),
                         if (deal == "فروش") rawMoney(price.text.toString()) else "",
                         if (deal != "فروش") rawMoney(deposit.text.toString()) else "",
                         if (deal == "رهن و اجاره") rawMoney(rent.text.toString()) else "",

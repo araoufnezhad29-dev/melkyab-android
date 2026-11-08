@@ -31,15 +31,16 @@ data class Property(
     val cooling: String = "", val heating: String = "", val direction: String = "",
     val facade: String = "", val master: String = "", val toilet: String = "",
     val cabinet: String = "", val flooring: String = "", val createdAt: Long = 0L,
-    val address: String = ""
+    val address: String = "", val buildingFloors: String = "",
+    val singleUnit: String = "بله", val unitsPerFloor: String = "۱"
 )
 
-class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(context, "melkyab.db", null, 5) {
+class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(context, "melkyab.db", null, 6) {
     override fun onCreate(db: android.database.sqlite.SQLiteDatabase) {
         db.execSQL("""CREATE TABLE properties(
             id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, title TEXT, city TEXT,
             area TEXT, price TEXT, deposit TEXT, rent TEXT, notes TEXT, photos TEXT,
-            deal TEXT DEFAULT 'فروش', unitCount TEXT, floor TEXT, parking TEXT, elevator TEXT, storage TEXT, balcony TEXT, cooling TEXT, heating TEXT, direction TEXT, facade TEXT, master TEXT, toilet TEXT, cabinet TEXT, flooring TEXT, createdAt INTEGER NOT NULL DEFAULT 0, address TEXT DEFAULT '')""")
+            deal TEXT DEFAULT 'فروش', unitCount TEXT, floor TEXT, parking TEXT, elevator TEXT, storage TEXT, balcony TEXT, cooling TEXT, heating TEXT, direction TEXT, facade TEXT, master TEXT, toilet TEXT, cabinet TEXT, flooring TEXT, createdAt INTEGER NOT NULL DEFAULT 0, address TEXT DEFAULT '', buildingFloors TEXT DEFAULT '', singleUnit TEXT DEFAULT 'بله', unitsPerFloor TEXT DEFAULT '۱')""")
     }
     override fun onUpgrade(db: android.database.sqlite.SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
@@ -56,6 +57,11 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
         }
         if (oldVersion < 5) {
             db.execSQL("ALTER TABLE properties ADD COLUMN address TEXT DEFAULT ''")
+        }
+        if (oldVersion < 6) {
+            db.execSQL("ALTER TABLE properties ADD COLUMN buildingFloors TEXT DEFAULT ''")
+            db.execSQL("ALTER TABLE properties ADD COLUMN singleUnit TEXT DEFAULT 'بله'")
+            db.execSQL("ALTER TABLE properties ADD COLUMN unitsPerFloor TEXT DEFAULT '۱'")
         }
     }
     fun all(query: String = ""): List<Property> {
@@ -74,7 +80,8 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
                 it.getString(14) ?: "", it.getString(15) ?: "", it.getString(16) ?: "",
                 it.getString(17) ?: "", it.getString(18) ?: "", it.getString(19) ?: "",
                 it.getString(20) ?: "", it.getString(21) ?: "", it.getString(22) ?: "",
-                it.getString(23) ?: "", it.getString(24) ?: "", it.getLong(25), it.getString(26) ?: ""
+                it.getString(23) ?: "", it.getString(24) ?: "", it.getLong(25), it.getString(26) ?: "",
+                it.getString(27) ?: "", it.getString(28) ?: "بله", it.getString(29) ?: "۱"
             ))
         }
         return result
@@ -89,6 +96,7 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
             put("cooling",p.cooling); put("heating",p.heating); put("direction",p.direction)
             put("facade",p.facade); put("master",p.master); put("toilet",p.toilet)
             put("cabinet",p.cabinet); put("flooring",p.flooring); put("createdAt",p.createdAt); put("address",p.address)
+            put("buildingFloors",p.buildingFloors); put("singleUnit",p.singleUnit); put("unitsPerFloor",p.unitsPerFloor)
         }
         if (p.id == 0L) writableDatabase.insert("properties", null, v)
         else writableDatabase.update("properties", v, "id=?", arrayOf(p.id.toString()))
@@ -319,9 +327,9 @@ class MainActivity : Activity() {
         }
         val logoWrap = FrameLayout(this).apply {
             setBackgroundColor(Color.rgb(5,25,59))
-            addView(brandMark, FrameLayout.LayoutParams(dp(104),dp(104),Gravity.CENTER))
+            addView(brandMark, FrameLayout.LayoutParams(dp(128),dp(128),Gravity.CENTER))
         }
-        page.addView(logoWrap, LinearLayout.LayoutParams(-1, dp(108)).apply { bottomMargin = dp(4) })
+        page.addView(logoWrap, LinearLayout.LayoutParams(-1, dp(132)).apply { bottomMargin = dp(4) })
 
         val slogan = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -329,19 +337,19 @@ class MainActivity : Activity() {
             setPadding(dp(2), dp(1), dp(2), dp(1))
             setBackgroundColor(Color.TRANSPARENT)
         }
-        slogan.addView(text("ساماندهی هوشمند فایل‌های ملکی", 14f, navy, true).apply {
+        slogan.addView(text("ساماندهی هوشمند فایل‌های ملکی", 17f, navy, true).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             includeFontPadding = false
             setPadding(0, dp(2), 0, dp(2))
-        }, LinearLayout.LayoutParams(-1, dp(23)))
-        slogan.addView(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 9f, muted).apply {
+        }, LinearLayout.LayoutParams(-1, dp(29)))
+        slogan.addView(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 11f, muted).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             includeFontPadding = false
             setPadding(0, dp(1), 0, dp(1))
-        }, LinearLayout.LayoutParams(-1, dp(17)))
-        page.addView(slogan, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(5) })
+        }, LinearLayout.LayoutParams(-1, dp(21)))
+        page.addView(slogan, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(5) })
 
         search = field("عنوان")
         page.addView(search, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(4) })
@@ -529,7 +537,9 @@ class MainActivity : Activity() {
             "متراژ: " + p.area + " متر", "آدرس: " + p.address,
             "قیمت کل: " + formatMoney(p.price), "قیمت هر متر مربع: " + pricePerMeter,
             "مبلغ رهن: " + formatMoney(p.deposit), "اجاره ماهانه: " + formatMoney(p.rent),
-            "تعداد واحدهای ساختمان: " + p.unitCount, "طبقه: " + p.floor,
+            "تعداد طبقات ساختمان: " + p.buildingFloors, "طبقه ملک: " + p.floor,
+            "تک‌واحدی: " + p.singleUnit,
+            if (p.singleUnit == "خیر") "تعداد واحد: " + p.unitsPerFloor else "",
             "پارکینگ: " + p.parking, "آسانسور: " + p.elevator, "انباری: " + p.storage,
             "بالکن: " + p.balcony, "سیستم سرمایش: " + p.cooling, "سیستم گرمایش: " + p.heating,
             "جهت ملک: " + p.direction, "نمای ساختمان: " + p.facade, "حمام مستر: " + p.master,
@@ -615,7 +625,7 @@ class MainActivity : Activity() {
         allItems.forEach { p ->
             listOf(
                 p.title,p.kind,p.deal,p.address,p.city,p.area,p.price,p.deposit,p.rent,
-                p.unitCount,p.floor,p.parking,p.elevator,p.storage,p.balcony,p.cooling,p.heating,
+                p.unitCount,p.floor,p.buildingFloors,p.singleUnit,p.unitsPerFloor,p.parking,p.elevator,p.storage,p.balcony,p.cooling,p.heating,
                 p.direction,p.facade,p.master,p.toilet,p.cabinet,p.flooring
             ).filter { it.isNotBlank() }.forEach { value ->
                 val normalizedValue = value.lowercase().replace("ي","ی").replace("ك","ک")
@@ -652,7 +662,8 @@ class MainActivity : Activity() {
             list.addView(suggestionScroll,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
         }
         // A number typed alone opens quick budget choices instead of searching for "2 toman".
-        if (normalized.matches(Regex("""\d+"""))) {
+        val bareNumberQuery = normalized.matches(Regex("""\d+"""))
+        if (bareNumberQuery) {
             val digit = normalized.toLongOrNull() ?: return
             val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
             val chips = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
@@ -674,7 +685,6 @@ class MainActivity : Activity() {
                 }
                 chips.addView(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
             }
-            return
         }
         val amountPattern = Regex("""(?<!\d)(\d{1,3}(?:[.,٬]\d{3})+|\d+(?:[.,]\d+)?)\s*(میلیارد|میلیون|هزار)?""")
         val amountTokens = amountPattern.findAll(normalized).toList()
@@ -685,7 +695,7 @@ class MainActivity : Activity() {
             // Search every saved field, not only title and notes.
             val searchable = listOf(
                 p.title,p.notes,p.kind,p.deal,p.address,p.city,p.area,p.price,p.deposit,p.rent,
-                p.unitCount,p.floor,p.parking,p.elevator,p.storage,p.balcony,p.cooling,p.heating,
+                p.unitCount,p.floor,p.buildingFloors,p.singleUnit,p.unitsPerFloor,p.parking,p.elevator,p.storage,p.balcony,p.cooling,p.heating,
                 p.direction,p.facade,p.master,p.toilet,p.cabinet,p.flooring
             ).joinToString(" ").lowercase().replace("ي","ی").replace("ك","ک")
             val textOk = textWords.all { word ->
@@ -693,10 +703,11 @@ class MainActivity : Activity() {
             }
             val numberOk = amountTokens.all { token ->
                 val numeric = token.groupValues[1].replace(Regex("[.,٬]"), "").toLongOrNull() ?: 0L
-                val multiplier = when(token.groupValues[2]) {
-                    "میلیارد" -> 1_000_000_000L
-                    "میلیون" -> 1_000_000L
-                    "هزار" -> 1_000L
+                val multiplier = when {
+                    token.groupValues[2] == "میلیارد" -> 1_000_000_000L
+                    token.groupValues[2] == "میلیون" -> 1_000_000L
+                    token.groupValues[2] == "هزار" -> 1_000L
+                    bareNumberQuery -> 1_000_000_000L
                     else -> 1L
                 }
                 val budget = if (numeric > Long.MAX_VALUE / multiplier) Long.MAX_VALUE else numeric * multiplier
@@ -709,7 +720,7 @@ class MainActivity : Activity() {
                     p.deal == "رهن کامل" -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
                     else -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
                 }.filter { it > 0L }
-                val isCeiling = multiplier > 1L || before.contains("تا") || numeric.toString().length <= 3
+                val isCeiling = multiplier > 1L || before.contains("تا") || bareNumberQuery || numeric.toString().length <= 3
                 if (candidates.isEmpty()) false
                 else if (isCeiling) candidates.any { it <= budget }
                 else candidates.any { it == budget }
@@ -951,9 +962,18 @@ class MainActivity : Activity() {
         attachAmountSuggestions(rent,"اجاره")
 
         content.addView(text("۳. جزئیات ساختمان و امکانات", 14f, navy, true))
-        val unitCount = field("تعداد کل واحدهای ساختمان", existing?.unitCount ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
-        val floor = field("طبقه چندم", existing?.floor ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
-        content.addView(unitCount); content.addView(floor)
+        val buildingFloors = field("تعداد طبقات ساختمان", existing?.buildingFloors ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
+        val floor = field("طبقه ملک", existing?.floor ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
+        val singleUnit = option("تک‌واحدی؟", listOf("بله", "خیر"), existing?.singleUnit ?: "بله")
+        val unitsPerFloor = option("تعداد واحد (۲ تا ۵)", listOf("۲","۳","۴","۵"), existing?.unitsPerFloor?.takeIf { it in listOf("۲","۳","۴","۵") } ?: "۲")
+        unitsPerFloor.visibility = if (singleUnit.selectedItem.toString() == "خیر") View.VISIBLE else View.GONE
+        singleUnit.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                unitsPerFloor.visibility = if (singleUnit.selectedItem.toString() == "خیر") View.VISIBLE else View.GONE
+            }
+        }
+        content.addView(buildingFloors); content.addView(floor); content.addView(singleUnit); content.addView(unitsPerFloor)
         val yesNo = listOf("نامشخص", "دارد", "ندارد")
         val parking = option("پارکینگ", yesNo, existing?.parking ?: "نامشخص")
         val elevator = option("آسانسور", yesNo, existing?.elevator ?: "نامشخص")
@@ -1002,14 +1022,16 @@ class MainActivity : Activity() {
                         if (deal != "فروش") rawMoney(deposit.text.toString()) else "",
                         if (deal == "رهن و اجاره") rawMoney(rent.text.toString()) else "",
                         notes.text.toString(),photos,deal,
-                        unitCount.text.toString(),floor.text.toString(),
+                        "",floor.text.toString(),
                         parking.selectedItem.toString(),elevator.selectedItem.toString(),
                         storage.selectedItem.toString(),balcony.selectedItem.toString(),
                         cooling.selectedItem.toString(),heating.selectedItem.toString(),
                         direction.selectedItem.toString(),facade.selectedItem.toString(),
                         master.selectedItem.toString(),toilet.selectedItem.toString(),
                         cabinet.selectedItem.toString(),flooring.selectedItem.toString(),
-                        existing?.createdAt ?: System.currentTimeMillis(), address.text.toString()))
+                        existing?.createdAt ?: System.currentTimeMillis(), address.text.toString(),
+                        buildingFloors.text.toString(), singleUnit.selectedItem.toString(),
+                        if (singleUnit.selectedItem.toString() == "خیر") unitsPerFloor.selectedItem.toString() else "۱"))
                     refreshList()
                 }
             }.show()

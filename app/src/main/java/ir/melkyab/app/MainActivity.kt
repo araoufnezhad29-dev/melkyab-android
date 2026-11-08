@@ -477,11 +477,19 @@ class MainActivity : Activity() {
         val sc = ScrollView(this)
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val category = if (p.kind == "کلنگی و مستغلات" || p.kind == "زمین و کلنگی") "کلنگی و مستغلات" else p.deal
+        val sqm = rawMoney(p.area).toLongOrNull() ?: 0L
+        val pricePerMeter = if (p.deal == "فروش" && sqm > 0) formatMoney(((p.price.toLongOrNull() ?: 0L) / sqm).toString()) else ""
         listOf("دسته‌بندی: " + category, "عنوان: " + p.title, "نوع ملک: " + p.kind,
             "متراژ: " + p.area + " متر", "آدرس: " + p.address,
-            "قیمت: " + formatMoney(p.price), "رهن: " + formatMoney(p.deposit),
-            "اجاره: " + formatMoney(p.rent), "توضیحات: " + p.notes,
-            "تاریخ ثبت: " + persianDate(p.createdAt)).filter { it.substringAfter(": ").isNotBlank() }
+            "قیمت کل: " + formatMoney(p.price), "قیمت هر متر مربع: " + pricePerMeter,
+            "مبلغ رهن: " + formatMoney(p.deposit), "اجاره ماهانه: " + formatMoney(p.rent),
+            "تعداد واحدهای ساختمان: " + p.unitCount, "طبقه: " + p.floor,
+            "پارکینگ: " + p.parking, "آسانسور: " + p.elevator, "انباری: " + p.storage,
+            "بالکن: " + p.balcony, "سیستم سرمایش: " + p.cooling, "سیستم گرمایش: " + p.heating,
+            "جهت ملک: " + p.direction, "نمای ساختمان: " + p.facade, "حمام مستر: " + p.master,
+            "سرویس بهداشتی: " + p.toilet, "کابینت: " + p.cabinet, "کف‌پوش: " + p.flooring,
+            "توضیحات: " + p.notes, "تاریخ ثبت: " + persianDate(p.createdAt))
+            .filter { it.substringAfter(": ").isNotBlank() }
             .forEach { content.addView(text(it,14f,navy)) }
         sc.addView(content); box.addView(sc)
         AlertDialog.Builder(this).setTitle(p.title.ifBlank { "مشخصات آگهی" }).setView(box)

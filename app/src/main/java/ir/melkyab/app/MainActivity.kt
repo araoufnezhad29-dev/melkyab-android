@@ -10,6 +10,8 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
+import android.window.OnBackInvokedCallback
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
@@ -98,6 +100,7 @@ class MainActivity : Activity() {
     private var displayMode = "list"
     private var dealFilter = "همه"
     private var activeSection: String? = null
+    private var systemBackCallback: OnBackInvokedCallback? = null
     private val navy = Color.rgb(28, 48, 75)
     private val blue = Color.rgb(48, 105, 170)
     private val pale = Color.rgb(239, 244, 250)
@@ -136,6 +139,13 @@ class MainActivity : Activity() {
         displayMode = getPreferences(Context.MODE_PRIVATE).getString("display_mode", "list") ?: "list"
         window.decorView.layoutDirection = View.LAYOUT_DIRECTION_RTL
         render()
+        if (Build.VERSION.SDK_INT >= 33) {
+            systemBackCallback = OnBackInvokedCallback { handleSystemBack() }
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                systemBackCallback!!
+            )
+        }
     }
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
@@ -641,16 +651,26 @@ class MainActivity : Activity() {
         AlertDialog.Builder(this).setTitle("عکس‌های انتخاب‌شده").setView(box).setPositiveButton("بستن",null).show()
     }
 
-    @Suppress("DEPRECATION")
-    override fun onBackPressed() {
+    private fun handleSystemBack() {
         if (activeSection != null) {
             activeSection = null
             dealFilter = "همه"
             render()
         } else {
-            super.onBackPressed()
+            finish()
         }
     }
 
-    override fun onDestroy() { db.close(); super.onDestroy() }
+    @Suppress("DEPRECATION")
+    override fun onBackPressed() {
+        handleSystemBack()
+    }
+
+    override fun onDestroy() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            systemBackCallback?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
+        }
+        db.close()
+        super.onDestroy()
+    }
 }

@@ -745,7 +745,7 @@ class MainActivity : Activity() {
         }
         area.addTextChangedListener(meterWatcher)
         price.addTextChangedListener(meterWatcher)
-        content.addView(priceLabel = text("قیمت فروش", 12f, muted, true)
+        val priceLabel = text("قیمت فروش", 12f, muted, true)
         val depositLabel = text("مبلغ رهن", 12f, muted, true)
         val rentLabel = text("اجاره ماهانه", 12f, muted, true)
         content.addView(priceLabel); content.addView(price); content.addView(pricePerMeter)

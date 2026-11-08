@@ -300,9 +300,7 @@ class MainActivity : Activity() {
         page.addView(search, LinearLayout.LayoutParams(-1, dp(50)).apply { bottomMargin = dp(12) })
         search.addTextChangedListener(object: TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                if (activeSection != null) refreshList()
-            }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList() }
             override fun afterTextChanged(s: Editable?) {}
         })
 
@@ -501,21 +499,74 @@ class MainActivity : Activity() {
     }
 
     private fun refreshList() {
-        if (!::list.isInitialized || activeSection == null) return
+        if (!::list.isInitialized) return
         list.removeAllViews()
         val query = if (::search.isInitialized) search.text.toString() else ""
-        val found = db.all(query)
-        val section = activeSection!!
-        val sectionItems = when(section) {
+        val allItems = db.all()
+        val found = if (query.isBlank()) allItems else allItems.filter { p ->
+            val q = query.lowercase().replace("ي","ی").replace("ك","ک")
+            val digits = q.map { ch -> when(ch) {
+                in '۰'..'۹' -> ('0'.code + ch.code - '۰'.code).toChar()
+                in '٠'..'٩' -> ('0'.code + ch.code - '٠'.code).toChar()
+                else -> ch
+            } }.joinToString("")
+            val searchable = listOf(p.title,p.notes,p.kind,p.deal,p.area,p.price,p.deposit,p.rent,p.address).joinToString(" ")
+                .lowercase().replace("ي","ی").replace("ك","ک")
+            val words = digits.split(Regex("[\\s,،٬]+")).filter { it.isNotBlank() }
+            val hasMoneyUnit = digits.contains("میلیارد") || digits.contains("میلیون") || digits.contains("هزار")
+            val numericQuery = Regex("\\d+").findAll(digits).map { it.value.toLongOrNull() ?: 0L }.toList()
+            val converted = numericQuery.mapIndexed { i, n ->
+                when {
+                    digits.contains("میلیارد") -> n * 1_000_000_000L
+                    digits.contains("میلیون") -> n * 1_000_000L
+                    digits.contains("هزار") -> n * 1_000L
+                    else -> n
+                }
+            }
+            val textOk = words.filter { it.any { c -> c.isLetter() } && it !in listOf("تا","حدود") }
+                .all { searchable.contains(it) || (it == "پیش" && p.deal == "رهن و اجاره") }
+            val numberOk = if (converted.isEmpty()) true else converted.all { amount ->
+                val values = when {
+                    digits.contains("متر") -> listOf(p.area)
+                    digits.contains("رهن") || digits.contains("پیش") -> listOf(p.deposit)
+                    digits.contains("اجاره") -> listOf(p.rent)
+                    digits.contains("فروش") || digits.contains("قیمت") -> listOf(p.price)
+                    else -> listOf(p.price,p.deposit,p.rent,p.area)
+                }.mapNotNull { it.filter { c -> c.isDigit() }.toLongOrNull() }
+                values.any { v -> if (digits.contains("تا")) v <= amount else v == amount || (amount > 0 && kotlin.math.abs(v-amount) <= amount/100) }
+            }
+            textOk && numberOk && (hasMoneyUnit || converted.isEmpty() || numberOk)
+        }
+        val section = activeSection
+        val sectionItems = if (section == null) found else when(section) {
             "فروش" -> found.filter { it.deal == "فروش" }
             "رهن" -> found.filter { it.deal == "رهن کامل" }
             "رهن و اجاره" -> found.filter { it.deal == "رهن و اجاره" }
             "کلنگی و مستغلات" -> found.filter { it.kind == "کلنگی و مستغلات" || it.kind == "زمین و کلنگی" }
             else -> emptyList()
         }
-        val items = if (dealFilter == "همه") sectionItems else sectionItems.filter { it.deal == dealFilter }
+        val items = if (section == null || dealFilter == "همه") sectionItems else sectionItems.filter { it.deal == dealFilter }
         if (items.isEmpty()) {
-            list.addView(text("در بخش «" + section + "» هنوز فایلی ثبت نشده است.", 14f, muted))
+            if (query.isNotBlank()) list.addView(text("نتیجه‌ای برای این جست‌وجو پیدا نشد.", 14f, muted))
+            else if (section != null) list.addView(text("در بخش «" + section + "» هنوز فایلی ثبت نشده است.", 14f, muted))
+            return
+        }
+        if (section == null && query.isNotBlank()) {
+            items.forEach { p ->
+                val category = if (p.kind == "کلنگی و مستغلات" || p.kind == "زمین و کلنگی") "کلنگی و مستغلات" else when(p.deal) {
+                    "فروش" -> "فروش"; "رهن کامل" -> "رهن"; else -> "رهن و اجاره"
+                }
+                val wrapper = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(8),dp(7),dp(8),dp(7))
+                    background = rounded(Color.WHITE,15,Color.rgb(220,227,236))
+                }
+                wrapper.addView(text("دسته‌بندی: " + category,12f,Color.rgb(174,133,59),true))
+                val card = makeCard(p,false)
+                card.setOnClickListener { showPropertyDetails(p) }
+                wrapper.addView(card)
+                list.addView(wrapper, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(9) })
+            }
             return
         }
         if (displayMode == "grid") {

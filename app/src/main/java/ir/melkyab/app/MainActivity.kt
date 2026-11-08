@@ -257,7 +257,7 @@ class MainActivity : Activity() {
             setPadding(dp(16),dp(12),dp(16),dp(8))
             setBackgroundColor(pale)
         }
-        val scroll = ScrollView(this).apply { fillViewport = true }
+        val scroll = ScrollView(this).apply { isFillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val brandMark = ImageView(this).apply {
             setImageResource(R.drawable.ic_melkyab_mark)

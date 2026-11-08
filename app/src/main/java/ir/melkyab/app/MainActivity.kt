@@ -218,33 +218,9 @@ class MainActivity : Activity() {
             setPadding(dp(16),dp(18),dp(16),dp(18))
             background = rounded(navy, 20)
         }
-        val logoBadge = LinearLayout(this).apply {
-            gravity = Gravity.CENTER
-            background = rounded(Color.rgb(43,65,94), 20, Color.rgb(220,180,95))
-        }
-        logoBadge.addView(text("⌂", 38f, Color.rgb(225,187,105), true).apply {
-            gravity = Gravity.CENTER
-            setPadding(0, 0, 0, dp(4))
-        })
-        header.addView(logoBadge, LinearLayout.LayoutParams(dp(66), dp(66)).apply { bottomMargin = dp(10) })
         header.addView(text("ملک‌یاب", 28f, Color.WHITE, true).apply { gravity = Gravity.CENTER })
         header.addView(text("سامان‌دهی هوشمند فایل‌های ملکی", 12f, Color.rgb(215,224,236)).apply { gravity = Gravity.CENTER })
         page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
-
-        val intro = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(14),dp(12),dp(14),dp(12))
-            background = rounded(Color.WHITE, 16, Color.rgb(224,215,192))
-        }
-        intro.addView(View(this).apply {
-            background = rounded(Color.rgb(194,157,83), 4)
-        }, LinearLayout.LayoutParams(dp(4), dp(42)).apply { marginEnd = dp(12) })
-        val introText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
-        introText.addView(text("مدیریت فایل‌های ملکی", 16f, navy, true).apply { gravity = Gravity.END })
-        introText.addView(text("همه آگهی‌ها، مرتب و دسته‌بندی‌شده", 11f, muted).apply { gravity = Gravity.END })
-        intro.addView(introText, LinearLayout.LayoutParams(0, -2, 1f))
-        page.addView(intro, LinearLayout.LayoutParams(-1, dp(76)).apply { bottomMargin = dp(12) })
 
         search = field("عنوان")
         page.addView(search, LinearLayout.LayoutParams(-1, dp(50)).apply { bottomMargin = dp(12) })
@@ -287,7 +263,7 @@ class MainActivity : Activity() {
                     background = rounded(Color.WHITE, 16, Color.rgb(222,228,237))
                     isClickable = true
                     isFocusable = true
-                    setOnClickListener { activeSection = category; dealFilter = "همه"; search.setText(""); renderSection() }
+                    setOnClickListener { activeSection = category; dealFilter = "همه"; renderSection() }
                 }
                 val symbol = when(category) {
                     "فروش" -> "◇"
@@ -323,35 +299,58 @@ class MainActivity : Activity() {
     }
 
     private fun renderSection() {
-        if (!::list.isInitialized || activeSection == null) return
-        list.removeAllViews()
-        val heading = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        heading.addView(text(activeSection!!, 18f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
-        heading.addView(button("بازگشت", { activeSection = null; search.setText(""); render() }))
-        list.addView(heading)
-        val filters = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val filterLabels = if (activeSection == "کلنگی و مستغلات") listOf("همه نوع معامله","فروش","رهن کامل","رهن و اجاره")
-            else listOf("همه", "فروش", "رهن کامل", "رهن و اجاره")
-        filterLabels.chunked(2).forEach { labels ->
-            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            labels.forEach { label ->
-                row.addView(button(label, {
-                    dealFilter = if (label == "همه نوع معامله") "همه" else label
-                    refreshList()
-                }, (if (label == "همه نوع معامله") "همه" else label) == dealFilter),
-                    LinearLayout.LayoutParams(0,dp(42),1f).apply { marginEnd=dp(4); bottomMargin=dp(4) })
-            }
-            filters.addView(row)
+        val section = activeSection ?: return
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(12), dp(16), dp(8))
+            setBackgroundColor(pale)
         }
-        list.addView(filters)
-        val modeRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; orientation = LinearLayout.HORIZONTAL }
-        modeRow.addView(text("نحوه نمایش", 13f, muted, true), LinearLayout.LayoutParams(0,-2,1f))
-        modeRow.addView(button("زیر هم", { displayMode="list"; getPreferences(Context.MODE_PRIVATE).edit().putString("display_mode",displayMode).apply(); refreshList() }, displayMode=="list"))
-        modeRow.addView(button("چهارستونه", { displayMode="grid"; getPreferences(Context.MODE_PRIVATE).edit().putString("display_mode",displayMode).apply(); refreshList() }, displayMode=="grid"))
-        list.addView(modeRow)
+        val scroll = ScrollView(this)
+        val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val toolbar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(4), dp(4), dp(4), dp(10))
+        }
+        toolbar.addView(button("‹ بازگشت", {
+            activeSection = null
+            render()
+        }), LinearLayout.LayoutParams(-2, dp(44)))
+        toolbar.addView(text(section, 19f, navy, true), LinearLayout.LayoutParams(0, -2, 1f).apply {
+            marginStart = dp(8)
+        })
+        val modeButton = button(if (displayMode == "list") "نمایش: فهرستی ▾" else "نمایش: شبکه‌ای ▾", {
+            val popup = PopupMenu(this, it)
+            popup.menu.add("نمایش فهرستی").setOnMenuItemClickListener {
+                displayMode = "list"
+                getPreferences(Context.MODE_PRIVATE).edit().putString("display_mode", displayMode).apply()
+                renderSection()
+                true
+            }
+            popup.menu.add("نمایش شبکه‌ای ۴ ستونه").setOnMenuItemClickListener {
+                displayMode = "grid"
+                getPreferences(Context.MODE_PRIVATE).edit().putString("display_mode", displayMode).apply()
+                renderSection()
+                true
+            }
+            popup.show()
+        })
+        toolbar.addView(modeButton, LinearLayout.LayoutParams(-2, dp(44)))
+        page.addView(toolbar)
+
+        search = field("عنوان")
+        page.addView(search, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(12) })
         val results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        list.addView(results)
+        page.addView(results)
+        scroll.addView(page)
+        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        setContentView(root)
         list = results
+        search.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList() }
+            override fun afterTextChanged(s: Editable?) {}
+        })
         refreshList()
     }
 

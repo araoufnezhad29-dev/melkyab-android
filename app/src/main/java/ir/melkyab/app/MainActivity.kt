@@ -252,20 +252,32 @@ class MainActivity : Activity() {
     }
 
     private fun logoOnHeader(): android.graphics.Bitmap? {
-        val decoded = BitmapFactory.decodeResource(resources, R.drawable.ic_melkyab_mark) ?: return null
-        val bitmap = decoded.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
-        for (y in 0 until bitmap.height) {
-            for (x in 0 until bitmap.width) {
-                val pixel = bitmap.getPixel(x, y)
-                val red = Color.red(pixel)
-                val green = Color.green(pixel)
-                val blue = Color.blue(pixel)
-                // Remove the logo file's own blue rounded-square backdrop.
-                // The header supplies one continuous navy background behind the gold artwork.
-                if (blue > red + 10 && blue >= green && red < 130 && green < 165) {
-                    bitmap.setPixel(x, y, Color.TRANSPARENT)
-                }
-            }
+        val source = BitmapFactory.decodeResource(resources, R.drawable.ic_melkyab_mark) ?: return null
+        val bitmap = source.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+        val width = bitmap.width
+        val height = bitmap.height
+        val visited = BooleanArray(width * height)
+        val queue = java.util.ArrayDeque<Int>()
+        // Start only from the four outer corners so gold artwork is never removed.
+        listOf(0, width - 1, (height - 1) * width, height * width - 1).forEach { queue.add(it) }
+        while (queue.isNotEmpty()) {
+            val index = queue.removeFirst()
+            if (index < 0 || index >= width * height || visited[index]) continue
+            visited[index] = true
+            val x = index % width
+            val y = index / width
+            val pixel = bitmap.getPixel(x, y)
+            val red = Color.red(pixel)
+            val green = Color.green(pixel)
+            val blue = Color.blue(pixel)
+            // The tile background is blue/navy; gold logo pixels are warm and are preserved.
+            val isBlueBackdrop = blue > red + 7 && blue >= green - 18 && red < 175 && green < 195
+            if (!isBlueBackdrop) continue
+            bitmap.setPixel(x, y, Color.TRANSPARENT)
+            if (x > 0) queue.add(index - 1)
+            if (x < width - 1) queue.add(index + 1)
+            if (y > 0) queue.add(index - width)
+            if (y < height - 1) queue.add(index + width)
         }
         return bitmap
     }
@@ -273,17 +285,12 @@ class MainActivity : Activity() {
     private fun render() {
         window.statusBarColor = Color.rgb(5,25,59)
         window.navigationBarColor = pale
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = 0
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(8),dp(3),dp(8),dp(3))
             setBackgroundColor(pale)
-            setOnApplyWindowInsetsListener { view, insets ->
-                val bottomInset = if (Build.VERSION.SDK_INT >= 30)
-                    insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom
-                else insets.systemWindowInsetBottom
-                view.setPadding(dp(8), dp(3), dp(8), bottomInset + dp(3))
-                insets
-            }
         }
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }

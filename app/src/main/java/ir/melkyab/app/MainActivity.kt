@@ -252,10 +252,19 @@ class MainActivity : Activity() {
     }
 
     private fun render() {
+        window.statusBarColor = Color.rgb(5,25,59)
+        window.navigationBarColor = pale
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(8),dp(3),dp(8),dp(3))
             setBackgroundColor(pale)
+            setOnApplyWindowInsetsListener { view, insets ->
+                val bottomInset = if (Build.VERSION.SDK_INT >= 30)
+                    insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom
+                else insets.systemWindowInsetBottom
+                view.setPadding(dp(8), dp(3), dp(8), bottomInset + dp(3))
+                insets
+            }
         }
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -267,9 +276,9 @@ class MainActivity : Activity() {
         }
         val logoWrap = FrameLayout(this).apply {
             setBackgroundColor(Color.rgb(5,25,59))
-            addView(brandMark, FrameLayout.LayoutParams(dp(86),dp(86),Gravity.CENTER))
+            addView(brandMark, FrameLayout.LayoutParams(dp(72),dp(72),Gravity.CENTER))
         }
-        page.addView(logoWrap, LinearLayout.LayoutParams(-1, dp(86)).apply { bottomMargin = dp(1) })
+        page.addView(logoWrap, LinearLayout.LayoutParams(-1, dp(72)).apply { bottomMargin = dp(1) })
 
         val slogan = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -285,10 +294,10 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
         })
-        page.addView(slogan, LinearLayout.LayoutParams(-1, dp(34)).apply { bottomMargin = dp(2) })
+        page.addView(slogan, LinearLayout.LayoutParams(-1, dp(30)).apply { bottomMargin = dp(2) })
 
         search = field("عنوان")
-        page.addView(search, LinearLayout.LayoutParams(-1, dp(36)).apply { bottomMargin = dp(1) })
+        page.addView(search, LinearLayout.LayoutParams(-1, dp(34)).apply { bottomMargin = dp(1) })
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         page.addView(list)
         search.addTextChangedListener(object: TextWatcher {
@@ -317,12 +326,12 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             background = rounded(Color.rgb(53,72,96), 14, Color.rgb(190,155,85))
         }
-        addCard.addView(plus, LinearLayout.LayoutParams(dp(32), dp(32)).apply { marginEnd = dp(12) })
+        addCard.addView(plus, LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(12) })
         val addText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
         addText.addView(text("ثبت ملک جدید", 13f, Color.WHITE, true))
         addText.addView(text("افزودن فایل و مشخصات ملک", 8f, Color.rgb(220,230,242)))
         addCard.addView(addText, LinearLayout.LayoutParams(0,-2,1f))
-        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(46)).apply { bottomMargin = dp(2) })
+        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(42)).apply { bottomMargin = dp(2) })
 
         val categoryTitle = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -362,7 +371,7 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER
                     background = rounded(Color.rgb(247,241,226), 30, Color.rgb(230,211,169))
                 }
-                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(28), dp(28)).apply { bottomMargin = dp(8) })
+                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(25), dp(25)).apply { bottomMargin = dp(5) })
                 tile.addView(text(category, 14f, navy, true).apply {
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
@@ -371,7 +380,7 @@ class MainActivity : Activity() {
                     includeFontPadding = false
                     setPadding(dp(2), dp(3), dp(2), dp(3))
                 })
-                row.addView(tile, LinearLayout.LayoutParams(0,dp(62),1f).apply {
+                row.addView(tile, LinearLayout.LayoutParams(0,dp(56),1f).apply {
                     marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(5)
                 })
             }
@@ -763,21 +772,24 @@ class MainActivity : Activity() {
         val depositLabel = text("مبلغ رهن", 12f, muted, true)
         val rentLabel = text("اجاره ماهانه", 12f, muted, true)
         fun attachAmountSuggestions(target: EditText, fieldName: String) {
+            val block = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
+            block.addView(text("مبالغ پیشنهادی $fieldName",9f,muted,true))
+            val horizontal = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
             val suggestions = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                visibility = View.GONE
             }
-            content.addView(suggestions, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(4) })
+            horizontal.addView(suggestions)
+            block.addView(horizontal, LinearLayout.LayoutParams(-1,-2))
+            content.addView(block, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(5) })
             target.addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                 override fun afterTextChanged(s: Editable?) {
                     val typed = rawMoney(s?.toString() ?: "").toLongOrNull() ?: 0L
                     suggestions.removeAllViews()
-                    if (typed <= 0L) { suggestions.visibility = View.GONE; return }
-                    suggestions.visibility = View.VISIBLE
-                    suggestions.addView(text("پیشنهاد $fieldName:",9f,muted,true))
+                    if (typed <= 0L) { block.visibility = View.GONE; return }
+                    block.visibility = View.VISIBLE
                     val scales = listOf(1_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
                     scales.forEach { scale ->
                         val amount = if (typed > Long.MAX_VALUE / scale) Long.MAX_VALUE else typed * scale
@@ -788,28 +800,33 @@ class MainActivity : Activity() {
                         }
                         val chip = TextView(this@MainActivity).apply {
                             text = label
-                            textSize = 9f
+                            textSize = 10f
                             setTextColor(blue)
                             gravity = Gravity.CENTER
-                            setPadding(dp(5),dp(3),dp(5),dp(3))
+                            setPadding(dp(8),dp(5),dp(8),dp(5))
                             background = rounded(Color.WHITE,8,Color.rgb(220,227,236))
                             isClickable = true
+                            isFocusable = true
                             setOnClickListener {
                                 target.setText(formatMoney(amount.toString()))
                                 target.setSelection(target.text.length)
                             }
                         }
-                        suggestions.addView(chip,LinearLayout.LayoutParams(-2,-2).apply { marginStart=dp(3) })
+                        suggestions.addView(chip,LinearLayout.LayoutParams(-2,-2).apply { marginStart=dp(5) })
                     }
                 }
             })
         }
+        content.addView(priceLabel)
+        content.addView(price)
         attachAmountSuggestions(price,"قیمت")
+        content.addView(pricePerMeter)
+        content.addView(depositLabel)
+        content.addView(deposit)
         attachAmountSuggestions(deposit,"رهن")
+        content.addView(rentLabel)
+        content.addView(rent)
         attachAmountSuggestions(rent,"اجاره")
-        content.addView(priceLabel); content.addView(price); content.addView(pricePerMeter)
-        content.addView(depositLabel); content.addView(deposit)
-        content.addView(rentLabel); content.addView(rent)
 
         content.addView(text("۳. جزئیات ساختمان و امکانات", 14f, navy, true))
         val unitCount = field("تعداد کل واحدهای ساختمان", existing?.unitCount ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }

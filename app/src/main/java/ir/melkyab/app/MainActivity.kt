@@ -610,8 +610,49 @@ class MainActivity : Activity() {
             in '٠'..'٩' -> ('0'.code + ch.code - '٠'.code).toChar()
             else -> ch
         } }.joinToString("").lowercase().replace("ي","ی").replace("ك","ک").trim()
+        // Offer matching values from every saved property field as the user types.
+        val suggestionValues = linkedSetOf<String>()
+        allItems.forEach { p ->
+            listOf(
+                p.title,p.kind,p.deal,p.address,p.city,p.area,p.price,p.deposit,p.rent,
+                p.unitCount,p.floor,p.parking,p.elevator,p.storage,p.balcony,p.cooling,p.heating,
+                p.direction,p.facade,p.master,p.toilet,p.cabinet,p.flooring
+            ).filter { it.isNotBlank() }.forEach { value ->
+                val normalizedValue = value.lowercase().replace("ي","ی").replace("ك","ک")
+                if (normalizedValue.contains(normalized)) suggestionValues.add(value.trim())
+            }
+        }
+        val suggestions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val suggestionScroll = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(suggestions)
+        }
+        if (suggestionValues.isNotEmpty()) {
+            list.addView(text("پیشنهادها",10f,muted,true))
+            suggestionValues.take(10).forEach { value ->
+                val chip = TextView(this).apply {
+                    text = value
+                    textSize = 10f
+                    setTextColor(blue)
+                    gravity = Gravity.CENTER
+                    setPadding(dp(9),dp(7),dp(9),dp(7))
+                    background = rounded(Color.WHITE,9,Color.rgb(220,227,236))
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener {
+                        search.setText(value)
+                        search.setSelection(search.text.length)
+                    }
+                }
+                suggestions.addView(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
+            }
+            list.addView(suggestionScroll,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
+        }
         // A number typed alone opens quick budget choices instead of searching for "2 toman".
-        if (normalized.matches(Regex("""\\d+"""))) {
+        if (normalized.matches(Regex("""\d+"""))) {
             val digit = normalized.toLongOrNull() ?: return
             val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
             val chips = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }

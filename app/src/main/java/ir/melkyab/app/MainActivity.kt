@@ -23,20 +23,30 @@ import java.text.DecimalFormat
 data class Property(
     val id: Long, val kind: String, val title: String, val city: String,
     val area: String, val price: String, val deposit: String, val rent: String,
-    val notes: String, val photos: String, val deal: String = "فروش"
+    val notes: String, val photos: String, val deal: String = "فروش",
+    val unitCount: String = "", val floor: String = "", val parking: String = "",
+    val elevator: String = "", val storage: String = "", val balcony: String = "",
+    val cooling: String = "", val heating: String = "", val direction: String = "",
+    val facade: String = "", val master: String = "", val toilet: String = "",
+    val cabinet: String = "", val flooring: String = ""
 )
 
-class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(context, "melkyab.db", null, 2) {
+class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(context, "melkyab.db", null, 3) {
     override fun onCreate(db: android.database.sqlite.SQLiteDatabase) {
         db.execSQL("""CREATE TABLE properties(
             id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, title TEXT, city TEXT,
             area TEXT, price TEXT, deposit TEXT, rent TEXT, notes TEXT, photos TEXT,
-            deal TEXT DEFAULT 'فروش')""")
+            deal TEXT DEFAULT 'فروش', unitCount TEXT, floor TEXT, parking TEXT, elevator TEXT, storage TEXT, balcony TEXT, cooling TEXT, heating TEXT, direction TEXT, facade TEXT, master TEXT, toilet TEXT, cabinet TEXT, flooring TEXT)""")
     }
     override fun onUpgrade(db: android.database.sqlite.SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
             db.execSQL("ALTER TABLE properties ADD COLUMN deal TEXT DEFAULT 'فروش'")
             db.execSQL("UPDATE properties SET deal=CASE WHEN deposit IS NOT NULL AND deposit!='' THEN CASE WHEN rent IS NOT NULL AND rent!='' THEN 'رهن و اجاره' ELSE 'رهن کامل' END ELSE 'فروش' END")
+        }
+        if (oldVersion < 3) {
+            listOf("unitCount","floor","parking","elevator","storage","balcony","cooling","heating","direction","facade","master","toilet","cabinet","flooring").forEach {
+                db.execSQL("ALTER TABLE properties ADD COLUMN $it TEXT DEFAULT ''")
+            }
         }
     }
     fun all(query: String = ""): List<Property> {
@@ -50,7 +60,12 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
                 it.getLong(0), it.getString(1) ?: "", it.getString(2) ?: "",
                 it.getString(3) ?: "", it.getString(4) ?: "", it.getString(5) ?: "",
                 it.getString(6) ?: "", it.getString(7) ?: "", it.getString(8) ?: "",
-                it.getString(9) ?: "[]", if (it.columnCount > 10) it.getString(10) ?: "فروش" else "فروش"
+                it.getString(9) ?: "[]", it.getString(10) ?: "فروش",
+                it.getString(11) ?: "", it.getString(12) ?: "", it.getString(13) ?: "",
+                it.getString(14) ?: "", it.getString(15) ?: "", it.getString(16) ?: "",
+                it.getString(17) ?: "", it.getString(18) ?: "", it.getString(19) ?: "",
+                it.getString(20) ?: "", it.getString(21) ?: "", it.getString(22) ?: "",
+                it.getString(23) ?: "", it.getString(24) ?: ""
             ))
         }
         return result
@@ -60,6 +75,11 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
             put("kind",p.kind); put("title",p.title); put("city",p.city); put("area",p.area)
             put("price",p.price); put("deposit",p.deposit); put("rent",p.rent)
             put("notes",p.notes); put("photos",p.photos); put("deal",p.deal)
+            put("unitCount",p.unitCount); put("floor",p.floor); put("parking",p.parking)
+            put("elevator",p.elevator); put("storage",p.storage); put("balcony",p.balcony)
+            put("cooling",p.cooling); put("heating",p.heating); put("direction",p.direction)
+            put("facade",p.facade); put("master",p.master); put("toilet",p.toilet)
+            put("cabinet",p.cabinet); put("flooring",p.flooring)
         }
         if (p.id == 0L) writableDatabase.insert("properties", null, v)
         else writableDatabase.update("properties", v, "id=?", arrayOf(p.id.toString()))
@@ -359,6 +379,14 @@ class MainActivity : Activity() {
         val deposit = moneyField("مبلغ رهن (تومان)",existing?.deposit ?: "")
         val rent = moneyField("اجاره ماهانه (تومان)",existing?.rent ?: "")
         val notes = field("توضیحات",existing?.notes ?: "").apply { minLines = 3; gravity = Gravity.TOP }
+
+        fun option(label: String, values: List<String>, current: String): Spinner {
+            content.addView(text(label, 12f, muted, true))
+            return Spinner(this).apply {
+                adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, values)
+                setSelection(values.indexOf(current).takeIf { it >= 0 } ?: 0)
+            }.also { content.addView(it) }
+        }
         content.addView(title); content.addView(city); content.addView(area)
         val priceLabel = text("قیمت فروش", 12f, muted, true)
         val depositLabel = text("مبلغ رهن", 12f, muted, true)
@@ -366,6 +394,25 @@ class MainActivity : Activity() {
         content.addView(priceLabel); content.addView(price)
         content.addView(depositLabel); content.addView(deposit)
         content.addView(rentLabel); content.addView(rent)
+
+        content.addView(text("۳. جزئیات ساختمان و امکانات", 14f, navy, true))
+        val unitCount = field("تعداد کل واحدهای ساختمان", existing?.unitCount ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
+        val floor = field("طبقه چندم", existing?.floor ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
+        content.addView(unitCount); content.addView(floor)
+        val yesNo = listOf("نامشخص", "دارد", "ندارد")
+        val parking = option("پارکینگ", yesNo, existing?.parking ?: "نامشخص")
+        val elevator = option("آسانسور", yesNo, existing?.elevator ?: "نامشخص")
+        val storage = option("انباری", yesNo, existing?.storage ?: "نامشخص")
+        val balcony = option("بالکن", yesNo, existing?.balcony ?: "نامشخص")
+        val cooling = option("سیستم سرمایش", listOf("نامشخص","کولر آبی","کولر گازی","داکت اسپلیت","چیلر","فن‌کویل","بدون سیستم"), existing?.cooling ?: "نامشخص")
+        val heating = option("سیستم گرمایش", listOf("نامشخص","پکیج و رادیاتور","موتورخانه و رادیاتور","بخاری","گرمایش از کف","داکت اسپلیت","فن‌کویل","بدون سیستم"), existing?.heating ?: "نامشخص")
+        val direction = option("جهت ملک", listOf("نامشخص","شمالی","جنوبی","شرقی","غربی","دوکله"), existing?.direction ?: "نامشخص")
+        val facade = option("نمای ساختمان", listOf("نامشخص","سنگ","آجر","کامپوزیت","سیمان","ترکیبی","شیشه","سایر"), existing?.facade ?: "نامشخص")
+        val master = option("حمام مستر", yesNo, existing?.master ?: "نامشخص")
+        val toilet = option("نوع سرویس بهداشتی", listOf("نامشخص","ایرانی","فرنگی","هر دو"), existing?.toilet ?: "نامشخص")
+        val cabinet = option("جنس کابینت", listOf("نامشخص","MDF","هایگلاس","ممبران","چوب","فلزی","PVC","سایر"), existing?.cabinet ?: "نامشخص")
+        val flooring = option("جنس کف واحد", listOf("نامشخص","سرامیک","سنگ","پارکت","لمینت","موزاییک","موکت","ترکیبی","سایر"), existing?.flooring ?: "نامشخص")
+
         fun updateDealFields() {
             when (dealSpinner.selectedItem.toString()) {
                 "فروش" -> { priceLabel.visibility=View.VISIBLE; price.visibility=View.VISIBLE; depositLabel.visibility=View.GONE; deposit.visibility=View.GONE; rentLabel.visibility=View.GONE; rent.visibility=View.GONE }
@@ -399,7 +446,14 @@ class MainActivity : Activity() {
                         if (deal == "فروش") rawMoney(price.text.toString()) else "",
                         if (deal != "فروش") rawMoney(deposit.text.toString()) else "",
                         if (deal == "رهن و اجاره") rawMoney(rent.text.toString()) else "",
-                        notes.text.toString(),photos,deal))
+                        notes.text.toString(),photos,deal,
+                        unitCount.text.toString(),floor.text.toString(),
+                        parking.selectedItem.toString(),elevator.selectedItem.toString(),
+                        storage.selectedItem.toString(),balcony.selectedItem.toString(),
+                        cooling.selectedItem.toString(),heating.selectedItem.toString(),
+                        direction.selectedItem.toString(),facade.selectedItem.toString(),
+                        master.selectedItem.toString(),toilet.selectedItem.toString(),
+                        cabinet.selectedItem.toString(),flooring.selectedItem.toString()))
                     refreshList()
                 }
             }.show()

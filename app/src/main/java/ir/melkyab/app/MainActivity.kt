@@ -603,7 +603,7 @@ class MainActivity : Activity() {
         list.removeAllViews()
         val query = if (::search.isInitialized) search.text.toString() else ""
         // Do not show the entire database until the user actually starts searching.
-        if (query.isBlank()) return
+        if (query.isBlank() && activeSection == null) return
         val allItems = db.all()
         val normalized = query.map { ch -> when(ch) {
             in '۰'..'۹' -> ('0'.code + ch.code - '۰'.code).toChar()

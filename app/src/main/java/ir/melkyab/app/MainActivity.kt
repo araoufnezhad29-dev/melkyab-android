@@ -30,15 +30,16 @@ data class Property(
     val elevator: String = "", val storage: String = "", val balcony: String = "",
     val cooling: String = "", val heating: String = "", val direction: String = "",
     val facade: String = "", val master: String = "", val toilet: String = "",
-    val cabinet: String = "", val flooring: String = "", val createdAt: Long = 0L
+    val cabinet: String = "", val flooring: String = "", val createdAt: Long = 0L,
+    val address: String = ""
 )
 
-class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(context, "melkyab.db", null, 4) {
+class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(context, "melkyab.db", null, 5) {
     override fun onCreate(db: android.database.sqlite.SQLiteDatabase) {
         db.execSQL("""CREATE TABLE properties(
             id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, title TEXT, city TEXT,
             area TEXT, price TEXT, deposit TEXT, rent TEXT, notes TEXT, photos TEXT,
-            deal TEXT DEFAULT 'فروش', unitCount TEXT, floor TEXT, parking TEXT, elevator TEXT, storage TEXT, balcony TEXT, cooling TEXT, heating TEXT, direction TEXT, facade TEXT, master TEXT, toilet TEXT, cabinet TEXT, flooring TEXT, createdAt INTEGER NOT NULL DEFAULT 0)""")
+            deal TEXT DEFAULT 'فروش', unitCount TEXT, floor TEXT, parking TEXT, elevator TEXT, storage TEXT, balcony TEXT, cooling TEXT, heating TEXT, direction TEXT, facade TEXT, master TEXT, toilet TEXT, cabinet TEXT, flooring TEXT, createdAt INTEGER NOT NULL DEFAULT 0, address TEXT DEFAULT '')""")
     }
     override fun onUpgrade(db: android.database.sqlite.SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
@@ -52,6 +53,9 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
         }
         if (oldVersion < 4) {
             db.execSQL("ALTER TABLE properties ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0")
+        }
+        if (oldVersion < 5) {
+            db.execSQL("ALTER TABLE properties ADD COLUMN address TEXT DEFAULT ''")
         }
     }
     fun all(query: String = ""): List<Property> {
@@ -70,7 +74,7 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
                 it.getString(14) ?: "", it.getString(15) ?: "", it.getString(16) ?: "",
                 it.getString(17) ?: "", it.getString(18) ?: "", it.getString(19) ?: "",
                 it.getString(20) ?: "", it.getString(21) ?: "", it.getString(22) ?: "",
-                it.getString(23) ?: "", it.getString(24) ?: "", it.getLong(25)
+                it.getString(23) ?: "", it.getString(24) ?: "", it.getLong(25), it.getString(26) ?: ""
             ))
         }
         return result
@@ -84,7 +88,7 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
             put("elevator",p.elevator); put("storage",p.storage); put("balcony",p.balcony)
             put("cooling",p.cooling); put("heating",p.heating); put("direction",p.direction)
             put("facade",p.facade); put("master",p.master); put("toilet",p.toilet)
-            put("cabinet",p.cabinet); put("flooring",p.flooring); put("createdAt",p.createdAt)
+            put("cabinet",p.cabinet); put("flooring",p.flooring); put("createdAt",p.createdAt); put("address",p.address)
         }
         if (p.id == 0L) writableDatabase.insert("properties", null, v)
         else writableDatabase.update("properties", v, "id=?", arrayOf(p.id.toString()))
@@ -466,8 +470,29 @@ class MainActivity : Activity() {
         refreshList()
     }
 
+    private var currentGalleryPhotos: List<String> = emptyList()
+
+    private fun showPropertyDetails(p: Property) {
+        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16),dp(8),dp(16),dp(8)) }
+        val sc = ScrollView(this)
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val category = if (p.kind == "کلنگی و مستغلات" || p.kind == "زمین و کلنگی") "کلنگی و مستغلات" else p.deal
+        listOf("دسته‌بندی: " + category, "عنوان: " + p.title, "نوع ملک: " + p.kind,
+            "متراژ: " + p.area + " متر", "آدرس: " + p.address,
+            "قیمت: " + formatMoney(p.price), "رهن: " + formatMoney(p.deposit),
+            "اجاره: " + formatMoney(p.rent), "توضیحات: " + p.notes,
+            "تاریخ ثبت: " + persianDate(p.createdAt)).filter { it.substringAfter(": ").isNotBlank() }
+            .forEach { content.addView(text(it,14f,navy)) }
+        sc.addView(content); box.addView(sc)
+        AlertDialog.Builder(this).setTitle(p.title.ifBlank { "مشخصات آگهی" }).setView(box)
+            .setNeutralButton("عکس‌ها") { _,_ -> showGallery(p) }
+            .setNegativeButton("بستن",null)
+            .setPositiveButton("ویرایش") { _,_ -> showEditor(p) }.show()
+    }
+
     private fun showGallery(p: Property) {
         val photos = try { val a = JSONArray(p.photos); MutableList(a.length()) { i -> a.getString(i) } } catch (_: Exception) { mutableListOf<String>() }
+        currentGalleryPhotos = photos
         if (photos.isEmpty()) { Toast.makeText(this,"برای این ملک عکسی ثبت نشده است",Toast.LENGTH_SHORT).show(); return }
         val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12),dp(8),dp(12),dp(8)) }
         val scroll = ScrollView(this)
@@ -489,13 +514,34 @@ class MainActivity : Activity() {
     }
 
     private fun showLargePhoto(path: String, number: Int, total: Int) {
+        var index = number - 1
         val image = ImageView(this).apply {
             adjustViewBounds = true; scaleType = ImageView.ScaleType.FIT_CENTER
             try { setImageURI(Uri.parse(path)) } catch (_: Exception) {}
             setBackgroundColor(Color.BLACK)
         }
-        AlertDialog.Builder(this).setTitle("تصویر " + number + " از " + total)
-            .setView(image).setPositiveButton("بستن",null).show()
+        val counter = text("تصویر $number از $total",14f,navy,true)
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        content.addView(counter)
+        content.addView(image, LinearLayout.LayoutParams(-1,dp(420)))
+        var startX = 0f
+        image.setOnTouchListener { _, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> { startX = event.x; true }
+                android.view.MotionEvent.ACTION_UP -> {
+                    val delta = event.x - startX
+                    if (kotlin.math.abs(delta) > dp(45) && currentGalleryPhotos.isNotEmpty()) {
+                        index = if (delta < 0) (index + 1) % currentGalleryPhotos.size
+                            else (index - 1 + currentGalleryPhotos.size) % currentGalleryPhotos.size
+                        image.setImageURI(Uri.parse(currentGalleryPhotos[index]))
+                        counter.text = "تصویر " + (index + 1) + " از " + currentGalleryPhotos.size
+                    }
+                    true
+                }
+                else -> true
+            }
+        }
+        AlertDialog.Builder(this).setView(content).setPositiveButton("بستن",null).show()
     }
 
     private fun refreshList() {
@@ -610,6 +656,12 @@ class MainActivity : Activity() {
         card.addView(text(p.deal, if (compact) 10f else 12f, blue, true))
         card.addView(text(p.kind, if (compact) 9f else 13f, muted))
         card.addView(text(p.area + " متر", if (compact) 9f else 12f, muted))
+        if (p.address.isNotBlank()) card.addView(text("آدرس: " + p.address, if (compact) 8f else 11f, muted))
+        val sqm = p.area.filter { it.isDigit() }.toLongOrNull() ?: 0L
+        val salePrice = p.price.toLongOrNull() ?: 0L
+        if (p.deal == "فروش" && sqm > 0 && salePrice > 0) {
+            card.addView(text("هر متر: " + formatMoney((salePrice / sqm).toString()) + " تومان", if (compact) 8f else 11f, Color.rgb(174,133,59), true))
+        }
         val money = when (p.deal) {
             "فروش" -> "قیمت: " + formatMoney(p.price)
             "رهن کامل" -> "رهن: " + formatMoney(p.deposit)
@@ -653,8 +705,8 @@ class MainActivity : Activity() {
         }
         content.addView(text("نوع ملک")); content.addView(spinner)
         val title = field("عنوان ملک",existing?.title ?: "")
-        val city = field("شهر و محله",existing?.city ?: "")
-        val area = field("متراژ (متر)",existing?.area ?: "")
+        val address = field("آدرس ملک",existing?.address ?: "")
+        val area = field("متراژ (متر)",existing?.area ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
         val price = moneyField("قیمت کل (تومان)",existing?.price ?: "")
         val deposit = moneyField("مبلغ رهن (تومان)",existing?.deposit ?: "")
         val rent = moneyField("اجاره ماهانه (تومان)",existing?.rent ?: "")
@@ -667,11 +719,27 @@ class MainActivity : Activity() {
                 setSelection(values.indexOf(current).takeIf { it >= 0 } ?: 0)
             }.also { content.addView(it) }
         }
-        content.addView(title); content.addView(area)
-        val priceLabel = text("قیمت فروش", 12f, muted, true)
+        content.addView(title); content.addView(address); content.addView(area)
+        val pricePerMeter = text("قیمت هر متر: —", 13f, Color.rgb(174,133,59), true).apply {
+            background = rounded(Color.rgb(250,247,239), 12, Color.rgb(208,177,112))
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+        }
+        fun updatePricePerMeter() {
+            val sqm = area.text.toString().filter { it.isDigit() }.toLongOrNull() ?: 0L
+            val total = rawMoney(price.text.toString()).toLongOrNull() ?: 0L
+            pricePerMeter.text = if (sqm > 0 && total > 0) "قیمت هر متر: " + formatMoney((total / sqm).toString()) + " تومان" else "قیمت هر متر: —"
+        }
+        val meterWatcher = object: TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updatePricePerMeter() }
+            override fun afterTextChanged(s: Editable?) {}
+        }
+        area.addTextChangedListener(meterWatcher)
+        price.addTextChangedListener(meterWatcher)
+        content.addView(priceLabel = text("قیمت فروش", 12f, muted, true)
         val depositLabel = text("مبلغ رهن", 12f, muted, true)
         val rentLabel = text("اجاره ماهانه", 12f, muted, true)
-        content.addView(priceLabel); content.addView(price)
+        content.addView(priceLabel); content.addView(price); content.addView(pricePerMeter)
         content.addView(depositLabel); content.addView(deposit)
         content.addView(rentLabel); content.addView(rent)
 
@@ -734,7 +802,7 @@ class MainActivity : Activity() {
                         direction.selectedItem.toString(),facade.selectedItem.toString(),
                         master.selectedItem.toString(),toilet.selectedItem.toString(),
                         cabinet.selectedItem.toString(),flooring.selectedItem.toString(),
-                        existing?.createdAt ?: System.currentTimeMillis()))
+                        existing?.createdAt ?: System.currentTimeMillis(), address.text.toString()))
                     refreshList()
                 }
             }.show()

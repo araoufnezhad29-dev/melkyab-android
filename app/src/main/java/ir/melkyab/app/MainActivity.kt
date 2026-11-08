@@ -28,15 +28,15 @@ data class Property(
     val elevator: String = "", val storage: String = "", val balcony: String = "",
     val cooling: String = "", val heating: String = "", val direction: String = "",
     val facade: String = "", val master: String = "", val toilet: String = "",
-    val cabinet: String = "", val flooring: String = ""
+    val cabinet: String = "", val flooring: String = "", val createdAt: Long = 0L
 )
 
-class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(context, "melkyab.db", null, 3) {
+class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(context, "melkyab.db", null, 4) {
     override fun onCreate(db: android.database.sqlite.SQLiteDatabase) {
         db.execSQL("""CREATE TABLE properties(
             id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, title TEXT, city TEXT,
             area TEXT, price TEXT, deposit TEXT, rent TEXT, notes TEXT, photos TEXT,
-            deal TEXT DEFAULT 'فروش', unitCount TEXT, floor TEXT, parking TEXT, elevator TEXT, storage TEXT, balcony TEXT, cooling TEXT, heating TEXT, direction TEXT, facade TEXT, master TEXT, toilet TEXT, cabinet TEXT, flooring TEXT)""")
+            deal TEXT DEFAULT 'فروش', unitCount TEXT, floor TEXT, parking TEXT, elevator TEXT, storage TEXT, balcony TEXT, cooling TEXT, heating TEXT, direction TEXT, facade TEXT, master TEXT, toilet TEXT, cabinet TEXT, flooring TEXT, createdAt INTEGER NOT NULL DEFAULT 0)""")
     }
     override fun onUpgrade(db: android.database.sqlite.SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 2) {
@@ -47,6 +47,9 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
             listOf("unitCount","floor","parking","elevator","storage","balcony","cooling","heating","direction","facade","master","toilet","cabinet","flooring").forEach {
                 db.execSQL("ALTER TABLE properties ADD COLUMN $it TEXT DEFAULT ''")
             }
+        }
+        if (oldVersion < 4) {
+            db.execSQL("ALTER TABLE properties ADD COLUMN createdAt INTEGER NOT NULL DEFAULT 0")
         }
     }
     fun all(query: String = ""): List<Property> {
@@ -65,7 +68,7 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
                 it.getString(14) ?: "", it.getString(15) ?: "", it.getString(16) ?: "",
                 it.getString(17) ?: "", it.getString(18) ?: "", it.getString(19) ?: "",
                 it.getString(20) ?: "", it.getString(21) ?: "", it.getString(22) ?: "",
-                it.getString(23) ?: "", it.getString(24) ?: ""
+                it.getString(23) ?: "", it.getString(24) ?: "", it.getLong(25)
             ))
         }
         return result
@@ -79,7 +82,7 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
             put("elevator",p.elevator); put("storage",p.storage); put("balcony",p.balcony)
             put("cooling",p.cooling); put("heating",p.heating); put("direction",p.direction)
             put("facade",p.facade); put("master",p.master); put("toilet",p.toilet)
-            put("cabinet",p.cabinet); put("flooring",p.flooring)
+            put("cabinet",p.cabinet); put("flooring",p.flooring); put("createdAt",p.createdAt)
         }
         if (p.id == 0L) writableDatabase.insert("properties", null, v)
         else writableDatabase.update("properties", v, "id=?", arrayOf(p.id.toString()))
@@ -202,6 +205,36 @@ class MainActivity : Activity() {
             }
         })
         return e
+    }
+
+    private fun persianDate(timestamp: Long): String {
+        if (timestamp <= 0L) return "نامشخص"
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = timestamp }
+        val gy = cal.get(java.util.Calendar.YEAR)
+        val gm = cal.get(java.util.Calendar.MONTH) + 1
+        val gd = cal.get(java.util.Calendar.DAY_OF_MONTH)
+        val monthDays = intArrayOf(0,31, if (gy % 4 == 0 && (gy % 100 != 0 || gy % 400 == 0)) 29 else 28,31,30,31,30,31,31,30,31,30,31)
+        var days = 355666 + 365 * gy + (gy + 3) / 4 - (gy + 99) / 100 + (gy + 399) / 400 + gd
+        for (i in 1 until gm) days += monthDays[i]
+        var jy = -1595 + 33 * (days / 12053)
+        days %= 12053
+        jy += 4 * (days / 1461)
+        days %= 1461
+        if (days > 365) {
+            jy += (days - 1) / 365
+            days = (days - 1) % 365
+        }
+        val jm: Int
+        val jd: Int
+        if (days < 186) {
+            jm = 1 + days / 31
+            jd = 1 + days % 31
+        } else {
+            jm = 7 + (days - 186) / 30
+            jd = 1 + (days - 186) % 30
+        }
+        return String.format(java.util.Locale.US, "%04d/%02d/%02d", jy, jm, jd)
+            .map { if (it in '0'..'9') ('۰'.code + it.code - '0'.code).toChar() else it }.joinToString("")
     }
 
     private fun render() {
@@ -451,6 +484,7 @@ class MainActivity : Activity() {
             else -> "رهن: " + formatMoney(p.deposit) + "\nاجاره: " + formatMoney(p.rent)
         }
         card.addView(text(money, if (compact) 9f else 13f, navy, true))
+        card.addView(text("تاریخ ثبت: " + persianDate(p.createdAt), if (compact) 8f else 10f, muted).apply { gravity = Gravity.LEFT })
         if (photoCount > 0) card.addView(button("عکس‌ها " + photoCount, { showGallery(p) }))
         val actions = LinearLayout(this).apply { orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL }
         actions.addView(button("ویرایش", { showEditor(p) }), LinearLayout.LayoutParams(if (compact) -1 else 0, dp(38), if (compact) 0f else 1f))
@@ -567,7 +601,8 @@ class MainActivity : Activity() {
                         cooling.selectedItem.toString(),heating.selectedItem.toString(),
                         direction.selectedItem.toString(),facade.selectedItem.toString(),
                         master.selectedItem.toString(),toilet.selectedItem.toString(),
-                        cabinet.selectedItem.toString(),flooring.selectedItem.toString()))
+                        cabinet.selectedItem.toString(),flooring.selectedItem.toString(),
+                        existing?.createdAt ?: System.currentTimeMillis()))
                     refreshList()
                 }
             }.show()

@@ -160,6 +160,12 @@ class MainActivity : Activity() {
         }
     }
 
+    // Prevent Android's "child already has a parent" crash when a dynamic view is reused.
+    private fun ViewGroup.addViewSafely(child: View, params: ViewGroup.LayoutParams? = null) {
+        (child.parent as? ViewGroup)?.removeView(child)
+        if (params == null) addView(child) else addView(child, params)
+    }
+
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
     private fun rounded(color: Int, radius: Int = 16, stroke: Int = Color.TRANSPARENT): GradientDrawable =
         GradientDrawable().apply { setColor(color); cornerRadius = dp(radius).toFloat(); if (stroke != Color.TRANSPARENT) setStroke(dp(1), stroke) }
@@ -329,7 +335,7 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.rgb(5,25,59))
             addView(brandMark, FrameLayout.LayoutParams(dp(128),dp(128),Gravity.CENTER))
         }
-        page.addView(logoWrap, LinearLayout.LayoutParams(-1, dp(132)).apply { bottomMargin = dp(4) })
+        page.addViewSafely(logoWrap, LinearLayout.LayoutParams(-1, dp(132)).apply { bottomMargin = dp(4) })
 
         val slogan = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -337,24 +343,24 @@ class MainActivity : Activity() {
             setPadding(dp(2), dp(1), dp(2), dp(1))
             setBackgroundColor(Color.TRANSPARENT)
         }
-        slogan.addView(text("ساماندهی هوشمند فایل‌های ملکی", 17f, navy, true).apply {
+        slogan.addViewSafely(text("ساماندهی هوشمند فایل‌های ملکی", 17f, navy, true).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             includeFontPadding = false
             setPadding(0, dp(2), 0, dp(2))
         }, LinearLayout.LayoutParams(-1, dp(29)))
-        slogan.addView(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 11f, muted).apply {
+        slogan.addViewSafely(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 11f, muted).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             includeFontPadding = false
             setPadding(0, dp(1), 0, dp(1))
         }, LinearLayout.LayoutParams(-1, dp(21)))
-        page.addView(slogan, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(5) })
+        page.addViewSafely(slogan, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(5) })
 
         search = field("عنوان")
-        page.addView(search, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(4) })
+        page.addViewSafely(search, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(4) })
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        page.addView(list)
+        page.addViewSafely(list)
         search.addTextChangedListener(object: TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList() }
@@ -381,28 +387,28 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             background = rounded(Color.rgb(53,72,96), 14, Color.rgb(190,155,85))
         }
-        addCard.addView(plus, LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(12) })
+        addCard.addViewSafely(plus, LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(12) })
         val addText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
-        addText.addView(text("ثبت ملک جدید", 16f, Color.WHITE, true).apply {
+        addText.addViewSafely(text("ثبت ملک جدید", 16f, Color.WHITE, true).apply {
             includeFontPadding = false
             setPadding(0, dp(2), 0, dp(2))
         }, LinearLayout.LayoutParams(-1, dp(25)))
-        addText.addView(text("افزودن فایل و مشخصات ملک", 11f, Color.rgb(220,230,242)).apply {
+        addText.addViewSafely(text("افزودن فایل و مشخصات ملک", 11f, Color.rgb(220,230,242)).apply {
             includeFontPadding = false
             setPadding(0, dp(2), 0, dp(2))
             maxLines = 1
         }, LinearLayout.LayoutParams(-1, dp(20)))
-        addCard.addView(addText, LinearLayout.LayoutParams(0, -2, 1f))
-        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(76)).apply { bottomMargin = dp(7) })
+        addCard.addViewSafely(addText, LinearLayout.LayoutParams(0, -2, 1f))
+        page.addViewSafely(addCard, LinearLayout.LayoutParams(-1, dp(76)).apply { bottomMargin = dp(7) })
 
         val categoryTitle = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(3), dp(1), dp(3), dp(3))
         }
-        categoryTitle.addView(text("دسته‌بندی آگهی‌ها", 14f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
-        categoryTitle.addView(text("انتخاب بخش موردنظر", 11f, muted))
-        page.addView(categoryTitle)
+        categoryTitle.addViewSafely(text("دسته‌بندی آگهی‌ها", 14f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
+        categoryTitle.addViewSafely(text("انتخاب بخش موردنظر", 11f, muted))
+        page.addViewSafely(categoryTitle)
         val categories = listOf("فروش", "رهن", "رهن و اجاره", "کلنگی و مستغلات")
         categories.chunked(2).forEach { pair ->
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -433,8 +439,8 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER
                     background = rounded(Color.rgb(247,241,226), 30, Color.rgb(230,211,169))
                 }
-                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
-                tile.addView(text(category, 16f, navy, true).apply {
+                tile.addViewSafely(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
+                tile.addViewSafely(text(category, 16f, navy, true).apply {
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
                     maxLines = 2
@@ -442,28 +448,28 @@ class MainActivity : Activity() {
                     includeFontPadding = false
                     setPadding(dp(2), dp(3), dp(2), dp(3))
                 })
-                row.addView(tile, LinearLayout.LayoutParams(0,dp(102),1f).apply {
+                row.addViewSafely(tile, LinearLayout.LayoutParams(0,dp(102),1f).apply {
                     marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(5)
                 })
             }
-            page.addView(row)
+            page.addViewSafely(row)
         }
 
-        scroll.addView(page)
-        root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
+        scroll.addViewSafely(page)
+        root.addViewSafely(scroll, LinearLayout.LayoutParams(-1,0,1f))
         val credit = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             setPadding(dp(6), dp(2), dp(6), dp(2))
             setBackgroundColor(Color.TRANSPARENT)
         }
-        credit.addView(text("طراح: مهندس رئوف نژاد", 11f, navy, true).apply {
+        credit.addViewSafely(text("طراح: مهندس رئوف نژاد", 11f, navy, true).apply {
             gravity = Gravity.CENTER
             includeFontPadding = true
             setPadding(0, 0, 0, 0)
             minHeight = dp(24)
         }, LinearLayout.LayoutParams(-1, -2))
-        root.addView(credit, LinearLayout.LayoutParams(-1, dp(42)).apply {
+        root.addViewSafely(credit, LinearLayout.LayoutParams(-1, dp(42)).apply {
             topMargin = dp(2); bottomMargin = dp(8)
         })
         setContentView(root)
@@ -486,11 +492,11 @@ class MainActivity : Activity() {
             background = rounded(Color.WHITE, 15, Color.rgb(224,216,198))
             elevation = dp(2).toFloat()
         }
-        toolbar.addView(button("‹ بازگشت", {
+        toolbar.addViewSafely(button("‹ بازگشت", {
             activeSection = null
             render()
         }), LinearLayout.LayoutParams(-2, dp(44)))
-        toolbar.addView(text(section, 19f, navy, true), LinearLayout.LayoutParams(0, -2, 1f).apply {
+        toolbar.addViewSafely(text(section, 19f, navy, true), LinearLayout.LayoutParams(0, -2, 1f).apply {
             marginStart = dp(8)
         })
         val modeButton = button(if (displayMode == "list") "نمایش: فهرستی ▾" else "نمایش: شبکه‌ای ▾", {
@@ -509,18 +515,18 @@ class MainActivity : Activity() {
             }
             popup.show()
         })
-        toolbar.addView(modeButton, LinearLayout.LayoutParams(-2, dp(44)))
-        page.addView(toolbar, LinearLayout.LayoutParams(-1, -2).apply {
+        toolbar.addViewSafely(modeButton, LinearLayout.LayoutParams(-2, dp(44)))
+        page.addViewSafely(toolbar, LinearLayout.LayoutParams(-1, -2).apply {
             topMargin = dp(24)
             bottomMargin = dp(14)
         })
 
         search = field("عنوان")
-        page.addView(search, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(12) })
+        page.addViewSafely(search, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(12) })
         val results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        page.addView(results)
-        scroll.addView(page)
-        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        page.addViewSafely(results)
+        scroll.addViewSafely(page)
+        root.addViewSafely(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         setContentView(root)
         list = results
         search.addTextChangedListener(object : TextWatcher {
@@ -553,8 +559,8 @@ class MainActivity : Activity() {
             "سرویس بهداشتی: " + p.toilet, "کابینت: " + p.cabinet, "کف‌پوش: " + p.flooring,
             "توضیحات: " + p.notes, "تاریخ ثبت: " + persianDate(p.createdAt))
             .filter { it.substringAfter(": ").isNotBlank() }
-            .forEach { content.addView(text(it,14f,navy)) }
-        sc.addView(content); box.addView(sc)
+            .forEach { content.addViewSafely(text(it,14f,navy)) }
+        sc.addViewSafely(content); box.addViewSafely(sc)
         AlertDialog.Builder(this).setTitle(p.title.ifBlank { "مشخصات آگهی" }).setView(box)
             .setNeutralButton("عکس‌ها") { _,_ -> showGallery(p) }
             .setNegativeButton("بستن",null)
@@ -575,11 +581,11 @@ class MainActivity : Activity() {
                 try { setImageURI(Uri.parse(path)) } catch (_: Exception) {}
                 setOnClickListener { showLargePhoto(path, index + 1, photos.size) }
             }
-            column.addView(text("تصویر " + (index + 1), 12f, muted))
-            column.addView(image, LinearLayout.LayoutParams(-1, dp(210)).apply { bottomMargin = dp(12) })
+            column.addViewSafely(text("تصویر " + (index + 1), 12f, muted))
+            column.addViewSafely(image, LinearLayout.LayoutParams(-1, dp(210)).apply { bottomMargin = dp(12) })
         }
-        scroll.addView(column)
-        container.addView(scroll)
+        scroll.addViewSafely(column)
+        container.addViewSafely(scroll)
         AlertDialog.Builder(this).setTitle("تصاویر ملک - " + photos.size + " عکس").setView(container)
             .setPositiveButton("بستن",null).show()
     }
@@ -593,8 +599,8 @@ class MainActivity : Activity() {
         }
         val counter = text("تصویر $number از $total",14f,navy,true)
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        content.addView(counter)
-        content.addView(image, LinearLayout.LayoutParams(-1,dp(420)))
+        content.addViewSafely(counter)
+        content.addViewSafely(image, LinearLayout.LayoutParams(-1,dp(420)))
         var startX = 0f
         image.setOnTouchListener { _, event ->
             when (event.action) {
@@ -648,7 +654,7 @@ class MainActivity : Activity() {
             addView(suggestions)
         }
         if (suggestionValues.isNotEmpty()) {
-            list.addView(text("پیشنهادها",10f,muted,true))
+            list.addViewSafely(text("پیشنهادها",10f,muted,true))
             suggestionValues.take(10).forEach { value ->
                 val chip = TextView(this).apply {
                     text = value
@@ -664,9 +670,9 @@ class MainActivity : Activity() {
                         search.setSelection(search.text.length)
                     }
                 }
-                suggestions.addView(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
+                suggestions.addViewSafely(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
             }
-            list.addView(suggestionScroll,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
+            list.addViewSafely(suggestionScroll,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
         }
         // A number typed alone opens quick budget choices instead of searching for "2 toman".
         val bareNumberQuery = normalized.matches(Regex("""\d+"""))
@@ -675,8 +681,8 @@ class MainActivity : Activity() {
             val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
             val chips = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
             val horizontal = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(chips) }
-            list.addView(text("جست‌وجو بر اساس بودجه",10f,muted,true))
-            list.addView(horizontal,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
+            list.addViewSafely(text("جست‌وجو بر اساس بودجه",10f,muted,true))
+            list.addViewSafely(horizontal,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
             scales.forEach { scale ->
                 val amount = if (digit > Long.MAX_VALUE / scale) Long.MAX_VALUE else digit * scale
                 val label = when {
@@ -690,7 +696,7 @@ class MainActivity : Activity() {
                     isClickable = true; isFocusable = true
                     setOnClickListener { search.setText(label); search.setSelection(search.text.length) }
                 }
-                chips.addView(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
+                chips.addViewSafely(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
             }
         }
         val amountPattern = Regex("""(?<!\d)(\d{1,3}(?:[.,٬]\d{3})+|\d+(?:[.,]\d+)?)\s*(میلیارد|میلیون|هزار)?""")
@@ -744,8 +750,8 @@ class MainActivity : Activity() {
         }
         val items = if (section == null || dealFilter == "همه") sectionItems else sectionItems.filter { it.deal == dealFilter }
         if (items.isEmpty()) {
-            if (query.isNotBlank()) list.addView(text("نتیجه‌ای برای این جست‌وجو پیدا نشد.", 14f, muted))
-            else if (section != null) list.addView(text("در بخش «" + section + "» هنوز فایلی ثبت نشده است.", 14f, muted))
+            if (query.isNotBlank()) list.addViewSafely(text("نتیجه‌ای برای این جست‌وجو پیدا نشد.", 14f, muted))
+            else if (section != null) list.addViewSafely(text("در بخش «" + section + "» هنوز فایلی ثبت نشده است.", 14f, muted))
             return
         }
         if (query.isNotBlank()) {
@@ -768,22 +774,22 @@ class MainActivity : Activity() {
                         scaleType = ImageView.ScaleType.CENTER_CROP
                         try { setImageURI(Uri.parse(photo)) } catch (_:Exception) {}
                     }
-                    row.addView(thumb, LinearLayout.LayoutParams(dp(42),dp(42)).apply { marginEnd=dp(7) })
+                    row.addViewSafely(thumb, LinearLayout.LayoutParams(dp(42),dp(42)).apply { marginEnd=dp(7) })
                 }
                 val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                info.addView(text(p.title.ifBlank { "بدون عنوان" },11f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
+                info.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },11f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
                 val priceLine = when(p.deal) {
                     "فروش" -> "قیمت: " + formatMoney(p.price) + " تومان"
                     "رهن کامل" -> "رهن: " + formatMoney(p.deposit) + " تومان"
                     else -> "پیش: " + formatMoney(p.deposit) + " · اجاره: " + formatMoney(p.rent)
                 }
-                info.addView(text(priceLine,9f,blue,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
-                info.addView(text(category + "  |  " + p.area + " متر",8f,muted).apply { maxLines=1 })
-                row.addView(info,LinearLayout.LayoutParams(0,-2,1f))
-                row.addView(text("›",18f,Color.rgb(174,133,59),true))
-                list.addView(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(3) })
+                info.addViewSafely(text(priceLine,9f,blue,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
+                info.addViewSafely(text(category + "  |  " + p.area + " متر",8f,muted).apply { maxLines=1 })
+                row.addViewSafely(info,LinearLayout.LayoutParams(0,-2,1f))
+                row.addViewSafely(text("›",18f,Color.rgb(174,133,59),true))
+                list.addViewSafely(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(3) })
             }
-            if (items.size > 6) list.addView(text("۶ مورد اول از " + items.size + " آگهی؛ برای مشاهده همه، جست‌وجو را دقیق‌تر کن.",9f,muted))
+            if (items.size > 6) list.addViewSafely(text("۶ مورد اول از " + items.size + " آگهی؛ برای مشاهده همه، جست‌وجو را دقیق‌تر کن.",9f,muted))
             return
         }
         if (displayMode == "grid") {
@@ -794,13 +800,13 @@ class MainActivity : Activity() {
                     width = 0; height = dp(190); columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                     setMargins(dp(2),dp(3),dp(2),dp(3))
                 }
-                grid.addView(card, lp)
+                grid.addViewSafely(card, lp)
             }
-            list.addView(grid)
+            list.addViewSafely(grid)
         } else {
             items.forEach { p ->
                 val card = makeCard(p, false)
-                list.addView(card, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(9) })
+                list.addViewSafely(card, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(9) })
             }
         }
     }
@@ -819,35 +825,35 @@ class MainActivity : Activity() {
                 background = rounded(pale, 10)
                 setOnClickListener { showGallery(p) }
             }
-            card.addView(thumb, LinearLayout.LayoutParams(-1, dp(if (compact) 58 else 115)))
+            card.addViewSafely(thumb, LinearLayout.LayoutParams(-1, dp(if (compact) 58 else 115)))
         } else if (compact) {
-            card.addView(text("بدون عکس", 10f, muted))
+            card.addViewSafely(text("بدون عکس", 10f, muted))
         }
-        card.addView(text(p.title.ifBlank { "بدون عنوان" }, if (compact) 11f else 17f, navy, true))
-        card.addView(text(p.deal, if (compact) 10f else 12f, blue, true))
-        card.addView(text(p.kind, if (compact) 9f else 13f, muted))
-        card.addView(text(p.area + " متر", if (compact) 9f else 12f, muted))
-        if (p.address.isNotBlank()) card.addView(text("آدرس: " + p.address, if (compact) 8f else 11f, muted))
+        card.addViewSafely(text(p.title.ifBlank { "بدون عنوان" }, if (compact) 11f else 17f, navy, true))
+        card.addViewSafely(text(p.deal, if (compact) 10f else 12f, blue, true))
+        card.addViewSafely(text(p.kind, if (compact) 9f else 13f, muted))
+        card.addViewSafely(text(p.area + " متر", if (compact) 9f else 12f, muted))
+        if (p.address.isNotBlank()) card.addViewSafely(text("آدرس: " + p.address, if (compact) 8f else 11f, muted))
         val sqm = rawMoney(p.area).toLongOrNull() ?: 0L
         val salePrice = p.price.toLongOrNull() ?: 0L
         if (p.deal == "فروش" && sqm > 0 && salePrice > 0) {
-            card.addView(text("هر متر: " + formatMoney((salePrice / sqm).toString()) + " تومان", if (compact) 8f else 11f, Color.rgb(174,133,59), true))
+            card.addViewSafely(text("هر متر: " + formatMoney((salePrice / sqm).toString()) + " تومان", if (compact) 8f else 11f, Color.rgb(174,133,59), true))
         }
         val money = when (p.deal) {
             "فروش" -> "قیمت: " + formatMoney(p.price)
             "رهن کامل" -> "رهن: " + formatMoney(p.deposit)
             else -> "رهن: " + formatMoney(p.deposit) + "\nاجاره: " + formatMoney(p.rent)
         }
-        card.addView(text(money, if (compact) 9f else 13f, navy, true))
-        card.addView(text("تاریخ ثبت: " + persianDate(p.createdAt), if (compact) 8f else 10f, muted).apply { gravity = Gravity.LEFT })
-        if (photoCount > 0) card.addView(button("عکس‌ها " + photoCount, { showGallery(p) }))
+        card.addViewSafely(text(money, if (compact) 9f else 13f, navy, true))
+        card.addViewSafely(text("تاریخ ثبت: " + persianDate(p.createdAt), if (compact) 8f else 10f, muted).apply { gravity = Gravity.LEFT })
+        if (photoCount > 0) card.addViewSafely(button("عکس‌ها " + photoCount, { showGallery(p) }))
         val actions = LinearLayout(this).apply { orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL }
-        actions.addView(button("ویرایش", { showEditor(p) }), LinearLayout.LayoutParams(if (compact) -1 else 0, dp(38), if (compact) 0f else 1f))
-        actions.addView(button("حذف", {
+        actions.addViewSafely(button("ویرایش", { showEditor(p) }), LinearLayout.LayoutParams(if (compact) -1 else 0, dp(38), if (compact) 0f else 1f))
+        actions.addViewSafely(button("حذف", {
             AlertDialog.Builder(this).setMessage("این ملک حذف شود؟")
                 .setNegativeButton("انصراف",null).setPositiveButton("حذف") { _,_ -> db.delete(p.id); refreshList() }.show()
         }), LinearLayout.LayoutParams(if (compact) -1 else 0, dp(38), if (compact) 0f else 1f))
-        card.addView(actions)
+        card.addViewSafely(actions)
         card.setOnClickListener { showPropertyDetails(p) }
         return card
     }
@@ -875,20 +881,20 @@ class MainActivity : Activity() {
         val wrap = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16),dp(8),dp(16),dp(8)) }
         val scroll = ScrollView(this)
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        content.addView(text("۱. نوع معامله را انتخاب کنید", 14f, navy, true))
+        content.addViewSafely(text("۱. نوع معامله را انتخاب کنید", 14f, navy, true))
         val deals = listOf("فروش","رهن کامل","رهن و اجاره")
         val dealSpinner = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, deals)
             setSelection(deals.indexOf(existing?.deal).takeIf { it >= 0 } ?: 0)
         }
-        content.addView(dealSpinner)
-        content.addView(text("۲. مشخصات ملک", 14f, navy, true))
+        content.addViewSafely(dealSpinner)
+        content.addViewSafely(text("۲. مشخصات ملک", 14f, navy, true))
         val kinds = listOf("آپارتمان","خانه و ویلایی","کلنگی و مستغلات","مغازه و تجاری")
         val spinner = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, kinds)
             setSelection(kinds.indexOf(existing?.kind).takeIf { it >= 0 } ?: 0)
         }
-        content.addView(text("نوع ملک")); content.addView(spinner)
+        content.addViewSafely(text("نوع ملک")); content.addViewSafely(spinner)
         val title = field("عنوان ملک",existing?.title ?: "")
         val address = field("آدرس ملک",existing?.address ?: "")
         val area = field("متراژ (متر)",existing?.area ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
@@ -898,13 +904,13 @@ class MainActivity : Activity() {
         val notes = field("توضیحات",existing?.notes ?: "").apply { minLines = 3; gravity = Gravity.TOP }
 
         fun option(label: String, values: List<String>, current: String): Spinner {
-            content.addView(text(label, 12f, muted, true))
+            content.addViewSafely(text(label, 12f, muted, true))
             return Spinner(this).apply {
                 adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, values)
                 setSelection(values.indexOf(current).takeIf { it >= 0 } ?: 0)
-            }.also { content.addView(it) }
+            }.also { content.addViewSafely(it) }
         }
-        content.addView(title); content.addView(address); content.addView(area)
+        content.addViewSafely(title); content.addViewSafely(address); content.addViewSafely(area)
         val pricePerMeter = text("قیمت هر متر: —", 13f, Color.rgb(174,133,59), true).apply {
             background = rounded(Color.rgb(250,247,239), 12, Color.rgb(208,177,112))
             setPadding(dp(12), dp(10), dp(12), dp(10))
@@ -926,15 +932,15 @@ class MainActivity : Activity() {
         val rentLabel = text("اجاره ماهانه", 12f, muted, true)
         fun attachAmountSuggestions(target: EditText, fieldName: String) {
             val block = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-            block.addView(text("مبالغ پیشنهادی $fieldName",9f,muted,true))
+            block.addViewSafely(text("مبالغ پیشنهادی $fieldName",9f,muted,true))
             val horizontal = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
             val suggestions = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
             }
-            horizontal.addView(suggestions)
-            block.addView(horizontal, LinearLayout.LayoutParams(-1,-2))
-            content.addView(block, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(5) })
+            horizontal.addViewSafely(suggestions)
+            block.addViewSafely(horizontal, LinearLayout.LayoutParams(-1,-2))
+            content.addViewSafely(block, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(5) })
             target.addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -965,23 +971,23 @@ class MainActivity : Activity() {
                                 target.setSelection(target.text.length)
                             }
                         }
-                        suggestions.addView(chip,LinearLayout.LayoutParams(-2,-2).apply { marginStart=dp(5) })
+                        suggestions.addViewSafely(chip,LinearLayout.LayoutParams(-2,-2).apply { marginStart=dp(5) })
                     }
                 }
             })
         }
-        content.addView(priceLabel)
-        content.addView(price)
+        content.addViewSafely(priceLabel)
+        content.addViewSafely(price)
         attachAmountSuggestions(price,"قیمت")
-        content.addView(pricePerMeter)
-        content.addView(depositLabel)
-        content.addView(deposit)
+        content.addViewSafely(pricePerMeter)
+        content.addViewSafely(depositLabel)
+        content.addViewSafely(deposit)
         attachAmountSuggestions(deposit,"رهن")
-        content.addView(rentLabel)
-        content.addView(rent)
+        content.addViewSafely(rentLabel)
+        content.addViewSafely(rent)
         attachAmountSuggestions(rent,"اجاره")
 
-        content.addView(text("۳. جزئیات ساختمان و امکانات", 14f, navy, true))
+        content.addViewSafely(text("۳. جزئیات ساختمان و امکانات", 14f, navy, true))
         val buildingFloors = field("تعداد طبقات ساختمان", existing?.buildingFloors ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
         val floor = field("طبقه ملک", existing?.floor ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
         val singleUnit = option("تک‌واحدی؟", listOf("بله", "خیر"), existing?.singleUnit ?: "بله")
@@ -993,7 +999,7 @@ class MainActivity : Activity() {
                 unitsPerFloor.visibility = if (singleUnit.selectedItem.toString() == "خیر") View.VISIBLE else View.GONE
             }
         }
-        content.addView(buildingFloors); content.addView(floor); content.addView(singleUnit); content.addView(unitsPerFloor)
+        content.addViewSafely(buildingFloors); content.addViewSafely(floor); content.addViewSafely(singleUnit); content.addViewSafely(unitsPerFloor)
         val yesNo = listOf("نامشخص", "دارد", "ندارد")
         val parking = option("پارکینگ", yesNo, existing?.parking ?: "نامشخص")
         val elevator = option("آسانسور", yesNo, existing?.elevator ?: "نامشخص")
@@ -1020,13 +1026,13 @@ class MainActivity : Activity() {
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updateDealFields() }
         }
         updateDealFields()
-        content.addView(text("تصاویر ملک", 14f, navy, true))
+        content.addViewSafely(text("تصاویر ملک", 14f, navy, true))
         val photoStatus = text("عکس‌های انتخاب‌شده: " + selectedPhotos.size, 12f, muted)
-        content.addView(photoStatus)
-        content.addView(button("انتخاب عکس از گوشی", { choosePhotos(); photoStatus.text = "برای به‌روزرسانی تعداد، دوباره فرم را باز کنید." }))
-        content.addView(button("مشاهده عکس‌های انتخاب‌شده", { showSelectedGallery() }))
-        content.addView(text("توضیحات", 12f, muted, true)); content.addView(notes)
-        scroll.addView(content); wrap.addView(scroll)
+        content.addViewSafely(photoStatus)
+        content.addViewSafely(button("انتخاب عکس از گوشی", { choosePhotos(); photoStatus.text = "برای به‌روزرسانی تعداد، دوباره فرم را باز کنید." }))
+        content.addViewSafely(button("مشاهده عکس‌های انتخاب‌شده", { showSelectedGallery() }))
+        content.addViewSafely(text("توضیحات", 12f, muted, true)); content.addViewSafely(notes)
+        scroll.addViewSafely(content); wrap.addViewSafely(scroll)
         AlertDialog.Builder(this).setTitle(if(existing==null) "ثبت ملک جدید" else "ویرایش ملک")
             .setView(wrap)
             .setNegativeButton("انصراف",null)
@@ -1065,12 +1071,12 @@ class MainActivity : Activity() {
         selectedPhotos.toList().forEachIndexed { index, path ->
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
             val img = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; setImageURI(Uri.parse(path)) }
-            row.addView(img, LinearLayout.LayoutParams(dp(90),dp(75)))
-            row.addView(text("تصویر " + (index+1),13f), LinearLayout.LayoutParams(0,-2,1f))
-            row.addView(button("حذف", { selectedPhotos.remove(path); Toast.makeText(this,"عکس از فهرست انتخاب‌ها حذف شد؛ فرم را دوباره باز کن.",Toast.LENGTH_SHORT).show() }))
-            col.addView(row)
+            row.addViewSafely(img, LinearLayout.LayoutParams(dp(90),dp(75)))
+            row.addViewSafely(text("تصویر " + (index+1),13f), LinearLayout.LayoutParams(0,-2,1f))
+            row.addViewSafely(button("حذف", { selectedPhotos.remove(path); Toast.makeText(this,"عکس از فهرست انتخاب‌ها حذف شد؛ فرم را دوباره باز کن.",Toast.LENGTH_SHORT).show() }))
+            col.addViewSafely(row)
         }
-        sc.addView(col); box.addView(sc)
+        sc.addViewSafely(col); box.addViewSafely(sc)
         AlertDialog.Builder(this).setTitle("عکس‌های انتخاب‌شده").setView(box).setPositiveButton("بستن",null).show()
     }
 

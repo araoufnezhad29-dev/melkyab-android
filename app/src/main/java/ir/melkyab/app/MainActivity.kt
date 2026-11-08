@@ -258,7 +258,7 @@ class MainActivity : Activity() {
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(20),dp(24),dp(20),dp(24))
+            setPadding(dp(8),dp(8),dp(8),dp(8))
             background = GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
                 intArrayOf(Color.rgb(19,35,57), navy, Color.rgb(39,63,91))
@@ -268,14 +268,11 @@ class MainActivity : Activity() {
         val brandMark = ImageView(this).apply {
             setImageResource(R.drawable.ic_melkyab_mark)
             scaleType = ImageView.ScaleType.FIT_CENTER
-            background = rounded(Color.rgb(22,42,66), 26, Color.rgb(224,187,112))
-            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = null
+            setPadding(0, 0, 0, 0)
             contentDescription = "لوگوی ملک‌یاب؛ خانه و ذره‌بین طلایی"
         }
-        header.addView(brandMark, LinearLayout.LayoutParams(dp(126), dp(126)).apply { bottomMargin = dp(14) })
-        header.addView(text("ملک‌یاب", 31f, Color.WHITE, true).apply { gravity = Gravity.CENTER })
-        val logoDivider = View(this).apply { setBackgroundColor(Color.rgb(224,187,112)) }
-        header.addView(logoDivider, LinearLayout.LayoutParams(dp(54), dp(2)).apply { topMargin = dp(10) })
+        header.addView(brandMark, LinearLayout.LayoutParams(dp(220), dp(220)))
         page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) })
 
         search = field("عنوان")

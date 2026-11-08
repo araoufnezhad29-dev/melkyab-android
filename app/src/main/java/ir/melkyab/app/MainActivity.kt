@@ -218,17 +218,33 @@ class MainActivity : Activity() {
             setPadding(dp(16),dp(18),dp(16),dp(18))
             background = rounded(navy, 20)
         }
-        header.addView(text("⌂", 34f, Color.rgb(220,180,95), true).apply { gravity = Gravity.CENTER })
-        header.addView(text("ملک‌یاب", 27f, Color.WHITE, true).apply { gravity = Gravity.CENTER })
+        val logoBadge = LinearLayout(this).apply {
+            gravity = Gravity.CENTER
+            background = rounded(Color.rgb(43,65,94), 20, Color.rgb(220,180,95))
+        }
+        logoBadge.addView(text("⌂", 38f, Color.rgb(225,187,105), true).apply {
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, dp(4))
+        })
+        header.addView(logoBadge, LinearLayout.LayoutParams(dp(66), dp(66)).apply { bottomMargin = dp(10) })
+        header.addView(text("ملک‌یاب", 28f, Color.WHITE, true).apply { gravity = Gravity.CENTER })
+        header.addView(text("سامان‌دهی هوشمند فایل‌های ملکی", 12f, Color.rgb(215,224,236)).apply { gravity = Gravity.CENTER })
         page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
 
         val intro = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(14),dp(12),dp(14),dp(12))
             background = rounded(Color.WHITE, 16, Color.rgb(224,215,192))
         }
-        intro.addView(text("مدیریت و دسته‌بندی فایل‌های ملکی", 15f, navy, true))
-        page.addView(intro, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(12) })
+        intro.addView(View(this).apply {
+            background = rounded(Color.rgb(194,157,83), 4)
+        }, LinearLayout.LayoutParams(dp(4), dp(42)).apply { marginEnd = dp(12) })
+        val introText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
+        introText.addView(text("مدیریت فایل‌های ملکی", 16f, navy, true).apply { gravity = Gravity.END })
+        introText.addView(text("همه آگهی‌ها، مرتب و دسته‌بندی‌شده", 11f, muted).apply { gravity = Gravity.END })
+        intro.addView(introText, LinearLayout.LayoutParams(0, -2, 1f))
+        page.addView(intro, LinearLayout.LayoutParams(-1, dp(76)).apply { bottomMargin = dp(12) })
 
         search = field("عنوان")
         page.addView(search, LinearLayout.LayoutParams(-1, dp(50)).apply { bottomMargin = dp(12) })
@@ -267,7 +283,7 @@ class MainActivity : Activity() {
                 val tile = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setPadding(dp(8),dp(14),dp(8),dp(14))
+                    setPadding(dp(8),dp(10),dp(8),dp(10))
                     background = rounded(Color.WHITE, 16, Color.rgb(222,228,237))
                     isClickable = true
                     isFocusable = true
@@ -279,10 +295,20 @@ class MainActivity : Activity() {
                     "رهن و اجاره" -> "▤"
                     else -> "⌑"
                 }
-                tile.addView(text(symbol, 25f, Color.rgb(176,137,65), true).apply { gravity = Gravity.CENTER })
-                tile.addView(text(category, 14f, navy, true).apply { gravity = Gravity.CENTER })
-                row.addView(tile, LinearLayout.LayoutParams(0,dp(100),1f).apply {
-                    marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(9)
+                tile.addView(text(symbol, 29f, Color.rgb(176,137,65), true).apply {
+                    gravity = Gravity.CENTER
+                    setPadding(0, dp(2), 0, dp(4))
+                })
+                tile.addView(text(category, 14f, navy, true).apply {
+                    gravity = Gravity.CENTER
+                    textAlignment = View.TEXT_ALIGNMENT_CENTER
+                    maxLines = 2
+                    minLines = 1
+                    includeFontPadding = false
+                    setPadding(dp(2), dp(8), dp(2), dp(4))
+                })
+                row.addView(tile, LinearLayout.LayoutParams(0,dp(124),1f).apply {
+                    marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(10)
                 })
             }
             page.addView(row)

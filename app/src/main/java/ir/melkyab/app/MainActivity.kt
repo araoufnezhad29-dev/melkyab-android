@@ -549,10 +549,10 @@ class MainActivity : Activity() {
             in '٠'..'٩' -> ('0'.code + ch.code - '٠'.code).toChar()
             else -> ch
         } }.joinToString("").lowercase().replace("ي","ی").replace("ك","ک")
-        val amountPattern = Regex("""(?<!\\d)(\\d{1,3}(?:[.,٬]\\d{3})+|\\d+(?:[.,]\\d+)?)\\s*(میلیارد|میلیون|هزار)?""")
+        val amountPattern = Regex("""(?<!\d)(\d{1,3}(?:[.,٬]\d{3})+|\d+(?:[.,]\d+)?)\s*(میلیارد|میلیون|هزار)?""")
         val amountTokens = amountPattern.findAll(normalized).toList()
         val textWords = normalized.replace(amountPattern, " ")
-            .split(Regex("""[\\s,،٬]+"""))
+            .split(Regex("""[\s,،٬]+"""))
             .filter { it.isNotBlank() && it !in listOf("تا","حدود","قیمت","متر","متراژ","تومان","تومن","میلیارد","میلیون","هزار") }
         val found = if (query.isBlank()) allItems else allItems.filter { p ->
             val searchable = listOf(p.title,p.notes,p.kind,p.deal,p.address)

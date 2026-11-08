@@ -248,19 +248,25 @@ class MainActivity : Activity() {
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(16),dp(18),dp(16),dp(18))
-            background = rounded(navy, 20)
+            setPadding(dp(20),dp(24),dp(20),dp(24))
+            background = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(19,35,57), navy, Color.rgb(39,63,91))
+            ).apply { cornerRadius = dp(26).toFloat(); setStroke(dp(1), Color.rgb(190,155,85)) }
+            elevation = dp(5).toFloat()
         }
         val brandMark = ImageView(this).apply {
             setImageResource(R.drawable.ic_melkyab_mark)
             scaleType = ImageView.ScaleType.FIT_CENTER
-            background = rounded(Color.rgb(25,45,72), 22, Color.rgb(190,155,85))
-            setPadding(dp(10), dp(10), dp(10), dp(10))
+            background = rounded(Color.rgb(22,42,66), 26, Color.rgb(224,187,112))
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            contentDescription = "لوگوی ملک‌یاب؛ خانه و ذره‌بین طلایی"
         }
-        header.addView(brandMark, LinearLayout.LayoutParams(dp(88), dp(88)).apply { bottomMargin = dp(12) })
-        header.addView(text("ملک‌یاب", 28f, Color.WHITE, true).apply { gravity = Gravity.CENTER })
-        header.addView(text("سامان‌دهی هوشمند فایل‌های ملکی", 12f, Color.rgb(215,224,236)).apply { gravity = Gravity.CENTER })
-        page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
+        header.addView(brandMark, LinearLayout.LayoutParams(dp(126), dp(126)).apply { bottomMargin = dp(14) })
+        header.addView(text("ملک‌یاب", 31f, Color.WHITE, true).apply { gravity = Gravity.CENTER })
+        val logoDivider = View(this).apply { setBackgroundColor(Color.rgb(224,187,112)) }
+        header.addView(logoDivider, LinearLayout.LayoutParams(dp(54), dp(2)).apply { topMargin = dp(10) })
+        page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) })
 
         search = field("عنوان")
         page.addView(search, LinearLayout.LayoutParams(-1, dp(50)).apply { bottomMargin = dp(12) })
@@ -342,7 +348,7 @@ class MainActivity : Activity() {
         val section = activeSection ?: return
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(8))
+            setPadding(dp(16), dp(18), dp(16), dp(8))
             setBackgroundColor(pale)
         }
         val scroll = ScrollView(this)
@@ -376,7 +382,10 @@ class MainActivity : Activity() {
             popup.show()
         })
         toolbar.addView(modeButton, LinearLayout.LayoutParams(-2, dp(44)))
-        page.addView(toolbar)
+        page.addView(toolbar, LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = dp(14)
+            bottomMargin = dp(12)
+        })
 
         search = field("عنوان")
         page.addView(search, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(12) })
@@ -630,6 +639,17 @@ class MainActivity : Activity() {
         }
         sc.addView(col); box.addView(sc)
         AlertDialog.Builder(this).setTitle("عکس‌های انتخاب‌شده").setView(box).setPositiveButton("بستن",null).show()
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onBackPressed() {
+        if (activeSection != null) {
+            activeSection = null
+            dealFilter = "همه"
+            render()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     override fun onDestroy() { db.close(); super.onDestroy() }

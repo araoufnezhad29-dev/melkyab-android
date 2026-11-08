@@ -319,9 +319,9 @@ class MainActivity : Activity() {
         }
         val logoWrap = FrameLayout(this).apply {
             setBackgroundColor(Color.rgb(5,25,59))
-            addView(brandMark, FrameLayout.LayoutParams(dp(82),dp(82),Gravity.CENTER))
+            addView(brandMark, FrameLayout.LayoutParams(dp(104),dp(104),Gravity.CENTER))
         }
-        page.addView(logoWrap, LinearLayout.LayoutParams(-1, dp(84)).apply { bottomMargin = dp(2) })
+        page.addView(logoWrap, LinearLayout.LayoutParams(-1, dp(108)).apply { bottomMargin = dp(4) })
 
         val slogan = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -341,10 +341,10 @@ class MainActivity : Activity() {
             includeFontPadding = false
             setPadding(0, dp(1), 0, dp(1))
         }, LinearLayout.LayoutParams(-1, dp(17)))
-        page.addView(slogan, LinearLayout.LayoutParams(-1, dp(42)).apply { bottomMargin = dp(4) })
+        page.addView(slogan, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(5) })
 
         search = field("عنوان")
-        page.addView(search, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(3) })
+        page.addView(search, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(4) })
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         page.addView(list)
         search.addTextChangedListener(object: TextWatcher {
@@ -375,18 +375,18 @@ class MainActivity : Activity() {
         }
         addCard.addView(plus, LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(12) })
         val addText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
-        addText.addView(text("ثبت ملک جدید", 13f, Color.WHITE, true))
-        addText.addView(text("افزودن فایل و مشخصات ملک", 8f, Color.rgb(220,230,242)))
+        addText.addView(text("ثبت ملک جدید", 15f, Color.WHITE, true))
+        addText.addView(text("افزودن فایل و مشخصات ملک", 9f, Color.rgb(220,230,242)))
         addCard.addView(addText, LinearLayout.LayoutParams(0,-2,1f))
-        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(52)).apply { bottomMargin = dp(5) })
+        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(62)).apply { bottomMargin = dp(7) })
 
         val categoryTitle = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(3), dp(1), dp(3), dp(3))
         }
-        categoryTitle.addView(text("دسته‌بندی آگهی‌ها", 12f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
-        categoryTitle.addView(text("انتخاب بخش موردنظر", 10f, muted))
+        categoryTitle.addView(text("دسته‌بندی آگهی‌ها", 14f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
+        categoryTitle.addView(text("انتخاب بخش موردنظر", 11f, muted))
         page.addView(categoryTitle)
         val categories = listOf("فروش", "رهن", "رهن و اجاره", "کلنگی و مستغلات")
         categories.chunked(2).forEach { pair ->
@@ -413,13 +413,13 @@ class MainActivity : Activity() {
                 }
                 val iconCircle = TextView(this).apply {
                     text = symbol
-                    textSize = 17f
+                    textSize = 19f
                     setTextColor(Color.rgb(174,133,59))
                     gravity = Gravity.CENTER
                     background = rounded(Color.rgb(247,241,226), 30, Color.rgb(230,211,169))
                 }
-                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(25), dp(25)).apply { bottomMargin = dp(5) })
-                tile.addView(text(category, 14f, navy, true).apply {
+                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(29), dp(29)).apply { bottomMargin = dp(6) })
+                tile.addView(text(category, 15f, navy, true).apply {
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
                     maxLines = 2
@@ -427,7 +427,7 @@ class MainActivity : Activity() {
                     includeFontPadding = false
                     setPadding(dp(2), dp(3), dp(2), dp(3))
                 })
-                row.addView(tile, LinearLayout.LayoutParams(0,dp(70),1f).apply {
+                row.addView(tile, LinearLayout.LayoutParams(0,dp(86),1f).apply {
                     marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(5)
                 })
             }
@@ -448,7 +448,7 @@ class MainActivity : Activity() {
             setPadding(0, 0, 0, 0)
             minHeight = dp(24)
         }, LinearLayout.LayoutParams(-1, -2))
-        root.addView(credit, LinearLayout.LayoutParams(-1, dp(40)).apply {
+        root.addView(credit, LinearLayout.LayoutParams(-1, dp(42)).apply {
             topMargin = dp(2); bottomMargin = dp(8)
         })
         setContentView(root)
@@ -602,20 +602,51 @@ class MainActivity : Activity() {
         if (!::list.isInitialized) return
         list.removeAllViews()
         val query = if (::search.isInitialized) search.text.toString() else ""
+        // Do not show the entire database until the user actually starts searching.
+        if (query.isBlank()) return
         val allItems = db.all()
         val normalized = query.map { ch -> when(ch) {
             in '۰'..'۹' -> ('0'.code + ch.code - '۰'.code).toChar()
             in '٠'..'٩' -> ('0'.code + ch.code - '٠'.code).toChar()
             else -> ch
-        } }.joinToString("").lowercase().replace("ي","ی").replace("ك","ک")
+        } }.joinToString("").lowercase().replace("ي","ی").replace("ك","ک").trim()
+        // A number typed alone opens quick budget choices instead of searching for "2 toman".
+        if (normalized.matches(Regex("""\\d+"""))) {
+            val digit = normalized.toLongOrNull() ?: return
+            val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
+            val chips = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            val horizontal = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(chips) }
+            list.addView(text("جست‌وجو بر اساس بودجه",10f,muted,true))
+            list.addView(horizontal,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
+            scales.forEach { scale ->
+                val amount = if (digit > Long.MAX_VALUE / scale) Long.MAX_VALUE else digit * scale
+                val label = when {
+                    scale >= 1_000_000_000L -> formatMoney((amount / 1_000_000_000L).toString()) + " میلیارد"
+                    else -> formatMoney((amount / 1_000_000L).toString()) + " میلیون"
+                }
+                val chip = TextView(this).apply {
+                    text = label; textSize = 10f; setTextColor(blue); gravity = Gravity.CENTER
+                    setPadding(dp(9),dp(7),dp(9),dp(7))
+                    background = rounded(Color.WHITE,9,Color.rgb(220,227,236))
+                    isClickable = true; isFocusable = true
+                    setOnClickListener { search.setText(label); search.setSelection(search.text.length) }
+                }
+                chips.addView(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
+            }
+            return
+        }
         val amountPattern = Regex("""(?<!\d)(\d{1,3}(?:[.,٬]\d{3})+|\d+(?:[.,]\d+)?)\s*(میلیارد|میلیون|هزار)?""")
         val amountTokens = amountPattern.findAll(normalized).toList()
         val textWords = normalized.replace(amountPattern, " ")
             .split(Regex("""[\s,،٬]+"""))
             .filter { it.isNotBlank() && it !in listOf("تا","حدود","قیمت","متر","متراژ","تومان","تومن","میلیارد","میلیون","هزار") }
         val found = if (query.isBlank()) allItems else allItems.filter { p ->
-            val searchable = listOf(p.title,p.notes,p.kind,p.deal,p.address)
-                .joinToString(" ").lowercase().replace("ي","ی").replace("ك","ک")
+            // Search every saved field, not only title and notes.
+            val searchable = listOf(
+                p.title,p.notes,p.kind,p.deal,p.address,p.city,p.area,p.price,p.deposit,p.rent,
+                p.unitCount,p.floor,p.parking,p.elevator,p.storage,p.balcony,p.cooling,p.heating,
+                p.direction,p.facade,p.master,p.toilet,p.cabinet,p.flooring
+            ).joinToString(" ").lowercase().replace("ي","ی").replace("ك","ک")
             val textOk = textWords.all { word ->
                 searchable.contains(word) || (word == "پیش" && p.deal != "فروش")
             }
@@ -840,7 +871,7 @@ class MainActivity : Activity() {
                     suggestions.removeAllViews()
                     if (typed <= 0L) { block.visibility = View.GONE; return }
                     block.visibility = View.VISIBLE
-                    val scales = listOf(1_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
+                    val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
                     scales.forEach { scale ->
                         val amount = if (typed > Long.MAX_VALUE / scale) Long.MAX_VALUE else typed * scale
                         val label = when {

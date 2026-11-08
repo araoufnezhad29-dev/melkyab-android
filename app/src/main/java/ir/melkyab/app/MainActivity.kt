@@ -257,51 +257,40 @@ class MainActivity : Activity() {
             setPadding(dp(16),dp(12),dp(16),dp(8))
             setBackgroundColor(pale)
         }
-        val scroll = ScrollView(this)
+        val scroll = ScrollView(this).apply { fillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        // سربرگ یکپارچه؛ زمینه با رنگ سرمه‌ای خود لوگو هماهنگ است تا قاب تو در تو دیده نشود.
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(dp(2), dp(2), dp(2), dp(2))
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(3,18,43), Color.rgb(5,25,59), Color.rgb(8,31,69))
-            ).apply { cornerRadius = dp(24).toFloat() }
-            elevation = dp(5).toFloat()
-            clipToOutline = true
-        }
         val brandMark = ImageView(this).apply {
             setImageResource(R.drawable.ic_melkyab_mark)
             scaleType = ImageView.ScaleType.FIT_CENTER
-            setBackgroundColor(Color.rgb(5,25,59))
+            setBackgroundColor(Color.TRANSPARENT)
             contentDescription = "لوگوی ملک‌یاب؛ خانه و ذره‌بین طلایی"
         }
-        header.addView(brandMark, LinearLayout.LayoutParams(-1, dp(226)))
-        page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
+        page.addView(brandMark, LinearLayout.LayoutParams(-1, dp(112)).apply { bottomMargin = dp(2) })
 
         val slogan = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(14), dp(11), dp(14), dp(11))
+            setPadding(dp(10), dp(5), dp(10), dp(5))
             background = GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
                 intArrayOf(Color.WHITE, Color.rgb(250,247,239), Color.WHITE)
             ).apply { cornerRadius = dp(16).toFloat(); setStroke(dp(1), Color.rgb(208,177,112)) }
             elevation = dp(2).toFloat()
         }
-        slogan.addView(text("ساماندهی هوشمند فایل‌های ملکی", 17f, navy, true).apply {
+        slogan.addView(text("ساماندهی هوشمند فایل‌های ملکی", 14f, navy, true).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
         })
-        slogan.addView(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 11f, muted).apply {
+        slogan.addView(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 9f, muted).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
         })
-        page.addView(slogan, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(14) })
+        page.addView(slogan, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
 
         search = field("عنوان")
-        page.addView(search, LinearLayout.LayoutParams(-1, dp(50)).apply { bottomMargin = dp(12) })
+        page.addView(search, LinearLayout.LayoutParams(-1, dp(42)).apply { bottomMargin = dp(3) })
+        list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        page.addView(list)
         search.addTextChangedListener(object: TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList() }
@@ -311,7 +300,7 @@ class MainActivity : Activity() {
         val addCard = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(20),dp(14),dp(20),dp(14))
+            setPadding(dp(12),dp(6),dp(12),dp(6))
             background = GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
                 intArrayOf(Color.rgb(12,30,57), Color.rgb(37,62,91), Color.rgb(12,30,57))
@@ -323,24 +312,24 @@ class MainActivity : Activity() {
         }
         val plus = TextView(this).apply {
             text = "+"
-            textSize = 34f
+            textSize = 26f
             setTextColor(Color.rgb(235,195,112))
             gravity = Gravity.CENTER
             background = rounded(Color.rgb(53,72,96), 14, Color.rgb(190,155,85))
         }
-        addCard.addView(plus, LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginEnd = dp(12) })
+        addCard.addView(plus, LinearLayout.LayoutParams(dp(38), dp(38)).apply { marginEnd = dp(12) })
         val addText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
-        addText.addView(text("ثبت ملک جدید", 18f, Color.WHITE, true))
-        addText.addView(text("افزودن فایل و مشخصات ملک", 11f, Color.rgb(220,230,242)))
+        addText.addView(text("ثبت ملک جدید", 15f, Color.WHITE, true))
+        addText.addView(text("افزودن فایل و مشخصات ملک", 9f, Color.rgb(220,230,242)))
         addCard.addView(addText, LinearLayout.LayoutParams(0,-2,1f))
-        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(78)).apply { bottomMargin = dp(18) })
+        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(54)).apply { bottomMargin = dp(6) })
 
         val categoryTitle = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(3), dp(3), dp(3), dp(8))
+            setPadding(dp(3), dp(1), dp(3), dp(3))
         }
-        categoryTitle.addView(text("دسته‌بندی آگهی‌ها", 17f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
+        categoryTitle.addView(text("دسته‌بندی آگهی‌ها", 14f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
         categoryTitle.addView(text("انتخاب بخش موردنظر", 10f, muted))
         page.addView(categoryTitle)
         val categories = listOf("فروش", "رهن", "رهن و اجاره", "کلنگی و مستغلات")
@@ -350,7 +339,7 @@ class MainActivity : Activity() {
                 val tile = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setPadding(dp(10),dp(12),dp(10),dp(12))
+                    setPadding(dp(7),dp(5),dp(7),dp(5))
                     background = GradientDrawable(
                         GradientDrawable.Orientation.TL_BR,
                         intArrayOf(Color.WHITE, Color.rgb(250,248,242))
@@ -368,12 +357,12 @@ class MainActivity : Activity() {
                 }
                 val iconCircle = TextView(this).apply {
                     text = symbol
-                    textSize = 27f
+                    textSize = 20f
                     setTextColor(Color.rgb(174,133,59))
                     gravity = Gravity.CENTER
                     background = rounded(Color.rgb(247,241,226), 30, Color.rgb(230,211,169))
                 }
-                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(52), dp(52)).apply { bottomMargin = dp(8) })
+                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(8) })
                 tile.addView(text(category, 14f, navy, true).apply {
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
@@ -382,15 +371,13 @@ class MainActivity : Activity() {
                     includeFontPadding = false
                     setPadding(dp(2), dp(3), dp(2), dp(3))
                 })
-                row.addView(tile, LinearLayout.LayoutParams(0,dp(132),1f).apply {
-                    marginEnd = dp(6); marginStart = dp(6); bottomMargin = dp(12)
+                row.addView(tile, LinearLayout.LayoutParams(0,dp(78),1f).apply {
+                    marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(5)
                 })
             }
             page.addView(row)
         }
 
-        list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        page.addView(list)
         scroll.addView(page)
         root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
         val credit = LinearLayout(this).apply {
@@ -402,8 +389,8 @@ class MainActivity : Activity() {
         credit.addView(text("طراح: مهندس رئوف نژاد", 11f, navy, true).apply {
             gravity = Gravity.CENTER
         })
-        page.addView(credit, LinearLayout.LayoutParams(-1, -2).apply {
-            topMargin = dp(14); bottomMargin = dp(12)
+        root.addView(credit, LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = dp(2); bottomMargin = dp(1)
         })
         setContentView(root)
         list.removeAllViews()
@@ -557,19 +544,18 @@ class MainActivity : Activity() {
         list.removeAllViews()
         val query = if (::search.isInitialized) search.text.toString() else ""
         val allItems = db.all()
+        val normalized = query.map { ch -> when(ch) {
+            in '۰'..'۹' -> ('0'.code + ch.code - '۰'.code).toChar()
+            in '٠'..'٩' -> ('0'.code + ch.code - '٠'.code).toChar()
+            else -> ch
+        } }.joinToString("").lowercase().replace("ي","ی").replace("ك","ک")
+        val amountPattern = Regex("(\\d+)\\s*(میلیارد|میلیون|هزار)?")
+        val amountTokens = amountPattern.findAll(normalized).filter { it.groupValues[1].isNotBlank() }.toList()
+        val textWords = normalized.replace(amountPattern, " ").split(Regex("[\\s,،٬]+"))
+            .filter { it.isNotBlank() && it !in listOf("تا","حدود","قیمت","متر","متراژ","تومان","تومن") }
         val found = if (query.isBlank()) allItems else allItems.filter { p ->
-            val normalized = query.map { ch -> when(ch) {
-                in '۰'..'۹' -> ('0'.code + ch.code - '۰'.code).toChar()
-                in '٠'..'٩' -> ('0'.code + ch.code - '٠'.code).toChar()
-                else -> ch
-            } }.joinToString("").lowercase().replace("ي","ی").replace("ك","ک")
             val searchable = listOf(p.title,p.notes,p.kind,p.deal,p.address).joinToString(" ")
                 .lowercase().replace("ي","ی").replace("ك","ک")
-            val amountPattern = Regex("(\\d+)\\s*(میلیارد|میلیون|هزار)?")
-            val amountTokens = amountPattern.findAll(normalized).filter { it.groupValues[1].isNotBlank() }.toList()
-            val units = listOf("میلیارد","میلیون","هزار")
-            val textWords = normalized.replace(amountPattern, " ").split(Regex("[\\s,،٬]+"))
-                .filter { it.isNotBlank() && it !in units && it !in listOf("تا","حدود","قیمت","متر","متراژ") }
             val textOk = textWords.all { word ->
                 searchable.contains(word) || (word == "پیش" && p.deal != "فروش") ||
                     (word == "فروش" && p.deal == "فروش")
@@ -582,20 +568,19 @@ class MainActivity : Activity() {
                     "هزار" -> 1_000L
                     else -> 1L
                 }
-                val amount = number * multiplier
+                val budget = number * multiplier
                 val before = normalized.substring(0, token.range.first)
-                val value = when {
-                    before.contains("متر") || before.contains("متراژ") -> rawMoney(p.area).toLongOrNull() ?: 0L
-                    before.contains("اجاره") -> rawMoney(p.rent).toLongOrNull() ?: 0L
-                    before.contains("رهن") || before.contains("پیش") -> rawMoney(p.deposit).toLongOrNull() ?: 0L
-                    before.contains("فروش") || before.contains("قیمت") -> rawMoney(p.price).toLongOrNull() ?: 0L
-                    else -> listOf(p.price,p.deposit,p.rent).mapNotNull { rawMoney(it).toLongOrNull() }
-                        .any { v -> if (before.contains("تا")) v <= amount else v == amount || (amount > 0 && kotlin.math.abs(v-amount) <= amount/100) }
-                        .let { if (it) amount else Long.MIN_VALUE }
-                }
-                if (value == Long.MIN_VALUE) true
-                else if (before.contains("تا")) value <= amount
-                else value == amount || (amount > 0 && kotlin.math.abs(value-amount) <= amount/100)
+                val candidates = when {
+                    before.contains("متر") || before.contains("متراژ") -> listOf(rawMoney(p.area).toLongOrNull() ?: 0L)
+                    before.contains("اجاره") -> listOf(rawMoney(p.rent).toLongOrNull() ?: 0L)
+                    before.contains("رهن") || before.contains("پیش") -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
+                    before.contains("فروش") || before.contains("قیمت") -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
+                    p.deal == "فروش" -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
+                    else -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
+                }.filter { it > 0L }
+                if (candidates.isEmpty()) false
+                else if (before.contains("تا") || multiplier > 1L) candidates.any { it <= budget }
+                else candidates.any { it == budget || (budget > 0L && kotlin.math.abs(it-budget) <= budget/100L) }
             }
             textOk && numberOk
         }
@@ -613,21 +598,40 @@ class MainActivity : Activity() {
             else if (section != null) list.addView(text("در بخش «" + section + "» هنوز فایلی ثبت نشده است.", 14f, muted))
             return
         }
-        if (section == null && query.isNotBlank()) {
+        if (query.isNotBlank()) {
             items.forEach { p ->
                 val category = if (p.kind == "کلنگی و مستغلات" || p.kind == "زمین و کلنگی") "کلنگی و مستغلات" else when(p.deal) {
-                    "فروش" -> "فروش"; "رهن کامل" -> "رهن"; else -> "رهن و اجاره"
+                    "فروش" -> "فروش"; "رهن کامل" -> "رهن کامل"; else -> "رهن و اجاره"
                 }
-                val wrapper = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(dp(8),dp(7),dp(8),dp(7))
-                    background = rounded(Color.WHITE,15,Color.rgb(220,227,236))
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(7),dp(4),dp(7),dp(4))
+                    background = rounded(Color.WHITE,11,Color.rgb(220,227,236))
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener { showPropertyDetails(p) }
                 }
-                wrapper.addView(text("دسته‌بندی: " + category,12f,Color.rgb(174,133,59),true))
-                val card = makeCard(p,false)
-                card.setOnClickListener { showPropertyDetails(p) }
-                wrapper.addView(card)
-                list.addView(wrapper, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(9) })
+                val photo = try { val a=JSONArray(p.photos); if(a.length()>0) a.getString(0) else "" } catch (_:Exception) { "" }
+                if (photo.isNotBlank()) {
+                    val thumb = ImageView(this).apply {
+                        scaleType = ImageView.ScaleType.CENTER_CROP
+                        try { setImageURI(Uri.parse(photo)) } catch (_:Exception) {}
+                    }
+                    row.addView(thumb, LinearLayout.LayoutParams(dp(42),dp(42)).apply { marginEnd=dp(7) })
+                }
+                val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+                info.addView(text(p.title.ifBlank { "بدون عنوان" },11f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
+                val priceLine = when(p.deal) {
+                    "فروش" -> "قیمت: " + formatMoney(p.price) + " تومان"
+                    "رهن کامل" -> "رهن: " + formatMoney(p.deposit) + " تومان"
+                    else -> "پیش: " + formatMoney(p.deposit) + " · اجاره: " + formatMoney(p.rent)
+                }
+                info.addView(text(priceLine,9f,blue,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
+                info.addView(text(category + "  |  " + p.area + " متر",8f,muted).apply { maxLines=1 })
+                row.addView(info,LinearLayout.LayoutParams(0,-2,1f))
+                row.addView(text("›",18f,Color.rgb(174,133,59),true))
+                list.addView(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(3) })
             }
             return
         }

@@ -350,6 +350,15 @@ class MainActivity : Activity() {
         page.addView(list)
         scroll.addView(page)
         root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
+        val credit = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            setPadding(dp(4), dp(5), dp(4), dp(2))
+        }
+        credit.addView(text("طراح: مهندس رئوف نژاد", 10f, Color.rgb(125,137,153)).apply {
+            gravity = Gravity.CENTER_VERTICAL
+        })
+        root.addView(credit, LinearLayout.LayoutParams(-1, dp(28)))
         setContentView(root)
         list.removeAllViews()
     }

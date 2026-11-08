@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.*
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONArray
 
@@ -54,17 +53,38 @@ class PropertyDb(context: Context) : android.database.sqlite.SQLiteOpenHelper(co
     fun delete(id: Long) { writableDatabase.delete("properties","id=?",arrayOf(id.toString())) }
 }
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
     private lateinit var db: PropertyDb
     private lateinit var list: LinearLayout
     private lateinit var search: EditText
     private var selectedPhotos = mutableListOf<String>()
-    private val photoPicker = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-        uris.forEach { uri ->
-            try { contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (_: Exception) {}
-            selectedPhotos.add(uri.toString())
+    private fun choosePhotos() {
+        val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(android.content.Intent.CATEGORY_OPENABLE)
+            type = "image/*"
+            putExtra(android.content.Intent.EXTRA_ALLOW_MULTIPLE, true)
         }
-        Toast.makeText(this, "تعداد عکس‌ها: ${selectedPhotos.size}", Toast.LENGTH_SHORT).show()
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, 101)
+    }
+
+    @Deprecated("Legacy activity result API for broad Android compatibility")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 101 && resultCode == Activity.RESULT_OK && data != null) {
+            val clip = data.clipData
+            if (clip != null) {
+                for (i in 0 until clip.itemCount) addPhoto(clip.getItemAt(i).uri)
+            } else data.data?.let { addPhoto(it) }
+            Toast.makeText(this, "تعداد عکس‌ها: ${selectedPhotos.size}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun addPhoto(uri: Uri) {
+        try {
+            contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (_: Exception) {}
+        if (!selectedPhotos.contains(uri.toString())) selectedPhotos.add(uri.toString())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -158,7 +178,7 @@ class MainActivity : AppCompatActivity() {
         val rent = field("اجاره ماهانه (تومان)",existing?.rent ?: "")
         val notes = field("توضیحات",existing?.notes ?: "").apply { minLines = 3; gravity = Gravity.TOP }
         listOf(title,city,area,price,deposit,rent,notes).forEach { content.addView(it) }
-        content.addView(button("انتخاب عکس‌ها از گوشی") { photoPicker.launch(arrayOf("image/*")) })
+        content.addView(button("انتخاب عکس‌ها از گوشی") { choosePhotos() })
         content.addView(text("عکس‌های انتخاب‌شده: ${selectedPhotos.size}"))
         scroll.addView(content); wrap.addView(scroll)
         AlertDialog.Builder(this).setTitle(if(existing==null) "ثبت ملک" else "ویرایش ملک")

@@ -113,10 +113,14 @@ class MainActivity : Activity() {
     private var dealFilter = "همه"
     private var activeSection: String? = null
     private var systemBackCallback: OnBackInvokedCallback? = null
-    private val navy = Color.rgb(28, 48, 75)
-    private val blue = Color.rgb(48, 105, 170)
-    private val pale = Color.rgb(239, 244, 250)
-    private val muted = Color.rgb(105, 119, 137)
+    // ملک‌یاب visual identity: deep midnight navy, warm ivory and refined antique gold.
+    private val navy = Color.rgb(20, 35, 58)
+    private val blue = Color.rgb(157, 119, 57)
+    private val pale = Color.rgb(246, 243, 235)
+    private val muted = Color.rgb(112, 111, 105)
+    private val gold = Color.rgb(194, 157, 91)
+    private val ink = Color.rgb(35, 48, 67)
+    private val softGold = Color.rgb(248, 241, 224)
 
     private fun choosePhotos() {
         val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -180,13 +184,21 @@ class MainActivity : Activity() {
         this.hint = hint; setText(value); textSize = 15f
         setSingleLine(hint != "توضیحات")
         setPadding(dp(12), dp(10), dp(12), dp(10))
-        background = rounded(Color.WHITE, 12, Color.rgb(220, 227, 236))
+        background = rounded(Color.WHITE, 15, Color.rgb(220, 204, 169))
+        setTextColor(ink)
+        setHintTextColor(Color.rgb(153, 151, 143))
+        elevation = dp(1).toFloat()
     }
 
     private fun button(label: String, action: () -> Unit, primary: Boolean = false) = Button(this).apply {
         text = label; textSize = 13f; isAllCaps = false
         setTextColor(if (primary) Color.WHITE else navy)
-        background = rounded(if (primary) blue else Color.WHITE, 12, if (primary) blue else Color.rgb(220,227,236))
+        background = if (primary) GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+            intArrayOf(Color.rgb(178,139,72), Color.rgb(137,99,43))).apply {
+                cornerRadius = dp(14).toFloat()
+                setStroke(dp(1), Color.rgb(208,177,119))
+            } else rounded(Color.WHITE, 14, Color.rgb(220,204,169))
+        elevation = dp(if (primary) 3 else 1).toFloat()
         setPadding(dp(8), 0, dp(8), 0)
         setOnClickListener { action() }
     }
@@ -314,14 +326,15 @@ class MainActivity : Activity() {
     }
 
     private fun render() {
-        window.statusBarColor = Color.rgb(5,25,59)
-        window.navigationBarColor = pale
+        window.statusBarColor = Color.rgb(13,27,47)
+        window.navigationBarColor = Color.rgb(239,234,222)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = 0
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(8),0,dp(8),0)
-            setBackgroundColor(pale)
+            setPadding(dp(10),dp(7),dp(10),0)
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(250,248,242), Color.rgb(238,232,218), Color.rgb(246,243,235)))
         }
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -332,10 +345,17 @@ class MainActivity : Activity() {
             contentDescription = "لوگوی ملک‌یاب؛ خانه و ذره‌بین طلایی"
         }
         val logoWrap = FrameLayout(this).apply {
-            setBackgroundColor(Color.rgb(5,25,59))
-            addView(brandMark, FrameLayout.LayoutParams(dp(128),dp(128),Gravity.CENTER))
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(13,27,47), Color.rgb(31,51,76), Color.rgb(13,27,47))).apply {
+                cornerRadius = dp(25).toFloat()
+                setStroke(dp(1), Color.rgb(190,151,82))
+            }
+            elevation = dp(5).toFloat()
+            addView(brandMark, FrameLayout.LayoutParams(dp(120),dp(120),Gravity.CENTER))
         }
-        page.addViewSafely(logoWrap, LinearLayout.LayoutParams(-1, dp(132)).apply { bottomMargin = dp(4) })
+        page.addViewSafely(logoWrap, LinearLayout.LayoutParams(-1, dp(132)).apply {
+            bottomMargin = dp(8); topMargin = dp(2)
+        })
 
         val slogan = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -355,10 +375,18 @@ class MainActivity : Activity() {
             includeFontPadding = false
             setPadding(0, dp(1), 0, dp(1))
         }, LinearLayout.LayoutParams(-1, dp(21)))
-        page.addViewSafely(slogan, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(5) })
+        page.addViewSafely(slogan, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(8) })
 
+        val searchPanel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(9),dp(5),dp(9),dp(5))
+            background = rounded(Color.WHITE,18,Color.rgb(226,211,181))
+            elevation = dp(2).toFloat()
+        }
         search = field("عنوان")
-        page.addViewSafely(search, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(4) })
+        search.background = rounded(Color.rgb(255,254,250),13,Color.rgb(232,224,207))
+        searchPanel.addViewSafely(search, LinearLayout.LayoutParams(-1, dp(48)))
+        page.addViewSafely(searchPanel, LinearLayout.LayoutParams(-1, dp(60)).apply { bottomMargin = dp(9) })
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         page.addViewSafely(list)
         search.addTextChangedListener(object: TextWatcher {
@@ -373,9 +401,9 @@ class MainActivity : Activity() {
             setPadding(dp(8),dp(3),dp(8),dp(3))
             background = GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.rgb(12,30,57), Color.rgb(37,62,91), Color.rgb(12,30,57))
-            ).apply { cornerRadius = dp(20).toFloat(); setStroke(dp(1), Color.rgb(205,166,91)) }
-            elevation = dp(4).toFloat()
+                intArrayOf(Color.rgb(13,27,47), Color.rgb(38,58,82), Color.rgb(13,27,47))
+            ).apply { cornerRadius = dp(21).toFloat(); setStroke(dp(1), Color.rgb(205,166,91)) }
+            elevation = dp(6).toFloat()
             isClickable = true
             isFocusable = true
             setOnClickListener { openEditorSafely(null) }
@@ -399,14 +427,14 @@ class MainActivity : Activity() {
             maxLines = 1
         }, LinearLayout.LayoutParams(-1, dp(20)))
         addCard.addViewSafely(addText, LinearLayout.LayoutParams(0, -2, 1f))
-        page.addViewSafely(addCard, LinearLayout.LayoutParams(-1, dp(76)).apply { bottomMargin = dp(7) })
+        page.addViewSafely(addCard, LinearLayout.LayoutParams(-1, dp(78)).apply { bottomMargin = dp(13); topMargin = dp(2) })
 
         val categoryTitle = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(3), dp(1), dp(3), dp(3))
         }
-        categoryTitle.addViewSafely(text("دسته‌بندی آگهی‌ها", 14f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
+        categoryTitle.addViewSafely(text("دسته‌بندی آگهی‌ها", 16f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
         categoryTitle.addViewSafely(text("انتخاب بخش موردنظر", 11f, muted))
         page.addViewSafely(categoryTitle)
         val categories = listOf("فروش", "رهن", "رهن و اجاره", "کلنگی و مستغلات")
@@ -417,11 +445,18 @@ class MainActivity : Activity() {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
                     setPadding(dp(5),dp(3),dp(5),dp(3))
-                    background = GradientDrawable(
-                        GradientDrawable.Orientation.TL_BR,
-                        intArrayOf(Color.WHITE, Color.rgb(250,248,242))
-                    ).apply { cornerRadius = dp(19).toFloat(); setStroke(dp(1), Color.rgb(224,216,198)) }
-                    elevation = dp(3).toFloat()
+                    val accent = when(category) {
+                        "فروش" -> Color.rgb(172,126,57)
+                        "رهن" -> Color.rgb(61,105,112)
+                        "رهن و اجاره" -> Color.rgb(91,104,145)
+                        else -> Color.rgb(117,91,66)
+                    }
+                    background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                        intArrayOf(Color.WHITE, Color.rgb(247,243,233))).apply {
+                        cornerRadius = dp(20).toFloat()
+                        setStroke(dp(1), Color.rgb(224,211,184))
+                    }
+                    elevation = dp(5).toFloat()
                     isClickable = true
                     isFocusable = true
                     setOnClickListener { activeSection = category; dealFilter = "همه"; renderSection() }
@@ -435,9 +470,9 @@ class MainActivity : Activity() {
                 val iconCircle = TextView(this).apply {
                     text = symbol
                     textSize = 22f
-                    setTextColor(Color.rgb(174,133,59))
+                    setTextColor(accent)
                     gravity = Gravity.CENTER
-                    background = rounded(Color.rgb(247,241,226), 30, Color.rgb(230,211,169))
+                    background = rounded(Color.rgb(250,246,235), 30, accent)
                 }
                 tile.addViewSafely(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
                 tile.addViewSafely(text(category, 16f, navy, true).apply {
@@ -448,8 +483,8 @@ class MainActivity : Activity() {
                     includeFontPadding = false
                     setPadding(dp(2), dp(3), dp(2), dp(3))
                 })
-                row.addViewSafely(tile, LinearLayout.LayoutParams(0,dp(102),1f).apply {
-                    marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(5)
+                row.addViewSafely(tile, LinearLayout.LayoutParams(0,dp(112),1f).apply {
+                    marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(8)
                 })
             }
             page.addViewSafely(row)
@@ -481,7 +516,8 @@ class MainActivity : Activity() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(18), dp(16), dp(8))
-            setBackgroundColor(pale)
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(250,248,242), Color.rgb(239,233,219)))
         }
         val scroll = ScrollView(this)
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -489,14 +525,21 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8), dp(7), dp(8), dp(7))
-            background = rounded(Color.WHITE, 15, Color.rgb(224,216,198))
-            elevation = dp(2).toFloat()
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.rgb(18,34,57), Color.rgb(38,57,78))).apply {
+                cornerRadius = dp(17).toFloat()
+                setStroke(dp(1), Color.rgb(195,157,91))
+            }
+            elevation = dp(4).toFloat()
         }
         toolbar.addViewSafely(button("‹ بازگشت", {
             activeSection = null
             render()
-        }), LinearLayout.LayoutParams(-2, dp(44)))
-        toolbar.addViewSafely(text(section, 19f, navy, true), LinearLayout.LayoutParams(0, -2, 1f).apply {
+        }).apply {
+            background = rounded(Color.rgb(250,246,235),12,Color.rgb(195,157,91))
+            setTextColor(navy)
+        }, LinearLayout.LayoutParams(-2, dp(44)))
+        toolbar.addViewSafely(text(section, 19f, Color.WHITE, true), LinearLayout.LayoutParams(0, -2, 1f).apply {
             marginStart = dp(8)
         })
         val modeButton = button(if (displayMode == "list") "نمایش: فهرستی ▾" else "نمایش: شبکه‌ای ▾", {

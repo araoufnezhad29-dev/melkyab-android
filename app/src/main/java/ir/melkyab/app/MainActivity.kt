@@ -441,16 +441,16 @@ class MainActivity : Activity() {
         categories.chunked(2).forEach { pair ->
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             pair.forEach { category ->
+                val accent = when(category) {
+                    "فروش" -> Color.rgb(172,126,57)
+                    "رهن" -> Color.rgb(61,105,112)
+                    "رهن و اجاره" -> Color.rgb(91,104,145)
+                    else -> Color.rgb(117,91,66)
+                }
                 val tile = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
                     setPadding(dp(5),dp(3),dp(5),dp(3))
-                    val accent = when(category) {
-                        "فروش" -> Color.rgb(172,126,57)
-                        "رهن" -> Color.rgb(61,105,112)
-                        "رهن و اجاره" -> Color.rgb(91,104,145)
-                        else -> Color.rgb(117,91,66)
-                    }
                     background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
                         intArrayOf(Color.WHITE, Color.rgb(247,243,233))).apply {
                         cornerRadius = dp(20).toFloat()

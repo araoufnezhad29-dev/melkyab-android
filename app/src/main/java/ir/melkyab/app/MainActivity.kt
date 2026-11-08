@@ -699,13 +699,28 @@ class MainActivity : Activity() {
                 chips.addViewSafely(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
             }
         }
-        val amountPattern = Regex("""(?<!\d)(\d{1,3}(?:[.,٬]\d{3})+|\d+(?:[.,]\d+)?)\s*(میلیارد|میلیون|هزار)?""")
-        val amountTokens = amountPattern.findAll(normalized).toList()
-        val textWords = normalized.replace(amountPattern, " ")
-            .split(Regex("""[\s,،٬]+"""))
-            .filter { it.isNotBlank() && it !in listOf("تا","حدود","قیمت","متر","متراژ","تومان","تومن","میلیارد","میلیون","هزار") }
-        val found = if (query.isBlank()) allItems else allItems.filter { p ->
-            // Search every saved field, not only title and notes.
+        // Parse an optional deal prefix first, then search all remaining terms and amounts.
+        val queryBody = when {
+            normalized.startsWith("رهن و اجاره") -> normalized.removePrefix("رهن و اجاره").trim()
+            normalized.startsWith("فروش") -> normalized.removePrefix("فروش").trim()
+            normalized.startsWith("اجاره") -> normalized.removePrefix("اجاره").trim()
+            normalized.startsWith("رهن") -> normalized.removePrefix("رهن").trim()
+            else -> normalized
+        }
+        val explicitDeal = when {
+            normalized.startsWith("فروش") -> "فروش"
+            normalized.startsWith("رهن و اجاره") || normalized.startsWith("اجاره") -> "رهن و اجاره"
+            normalized.startsWith("رهن") -> "رهن کامل"
+            else -> null
+        }
+        val amountPattern = Regex("""(?<!\\d)(\\d{1,3}(?:[.,٬]\\d{3})+|\\d+(?:[.,]\\d+)?)\\s*(میلیارد|میلیون|هزار)?""")
+        val amountTokens = amountPattern.findAll(queryBody).toList()
+        val textWords = queryBody.replace(amountPattern, " ")
+            .split(Regex("""[\\s,،٬]+"""))
+            .filter { it.isNotBlank() && it !in listOf("تا","حدود","قیمت","متر","متراژ","تومان","تومن","میلیارد","میلیون","هزار","پیش") }
+        val bareBudget = queryBody.matches(Regex("""\\d+"""))
+        val bareBudgetValue = if (bareBudget) queryBody.toLongOrNull() else null
+        val found = allItems.filter { p ->
             val searchable = listOf(
                 p.title,p.notes,p.kind,p.deal,p.address,p.city,p.area,p.price,p.deposit,p.rent,
                 p.unitCount,p.floor,p.buildingFloors,p.singleUnit,p.unitsPerFloor,p.parking,p.elevator,p.storage,p.balcony,p.cooling,p.heating,
@@ -714,40 +729,47 @@ class MainActivity : Activity() {
             val textOk = textWords.all { word ->
                 searchable.contains(word) || (word == "پیش" && p.deal != "فروش")
             }
-            val numberOk = if (bareNumberQuery) {
-                val digit = normalized.toLongOrNull() ?: 0L
-                val budget = if (digit > Long.MAX_VALUE / 1_000_000_000L) Long.MAX_VALUE else digit * 1_000_000_000L
-                val moneyValues = listOf(p.price, p.deposit, p.rent).mapNotNull { rawMoney(it).toLongOrNull() }.filter { it > 0L }
-                val numericFields = listOf(p.area, p.floor, p.buildingFloors, p.unitsPerFloor, p.unitCount)
-                val moneyMatch = moneyValues.any { it <= budget }
-                val otherNumberMatch = numericFields.any { rawMoney(it).contains(normalized) }
-                moneyMatch || otherNumberMatch
-            } else {
-                amountTokens.all { token ->
-                    val numeric = token.groupValues[1].replace(Regex("[.,٬]"), "").toLongOrNull() ?: 0L
-                    val multiplier = when {
-                        token.groupValues[2] == "میلیارد" -> 1_000_000_000L
-                        token.groupValues[2] == "میلیون" -> 1_000_000L
-                        token.groupValues[2] == "هزار" -> 1_000L
+            val dealOk = when (explicitDeal) {
+                "فروش" -> p.deal == "فروش"
+                "رهن کامل" -> p.deal == "رهن کامل"
+                "رهن و اجاره" -> p.deal == "رهن و اجاره"
+                else -> true
+            }
+            fun relevantMoneyValues(): List<Long> = when (p.deal) {
+                "فروش" -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
+                "رهن کامل" -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
+                else -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L, rawMoney(p.rent).toLongOrNull() ?: 0L)
+            }.filter { it > 0L }
+            val numberOk = when {
+                bareBudgetValue != null -> {
+                    val digit = bareBudgetValue
+                    val budget = if (digit > Long.MAX_VALUE / 1_000_000_000L) Long.MAX_VALUE else digit * 1_000_000_000L
+                    relevantMoneyValues().any { it <= budget } ||
+                        (explicitDeal == null && listOf(p.area,p.floor,p.buildingFloors,p.unitsPerFloor,p.unitCount).any { rawMoney(it).contains(queryBody) })
+                }
+                amountTokens.isNotEmpty() -> amountTokens.all { token ->
+                    val numericText = token.groupValues[1].replace(Regex("[.,٬]"), "")
+                    val numeric = numericText.toLongOrNull() ?: 0L
+                    val multiplier = when (token.groupValues[2]) {
+                        "میلیارد" -> 1_000_000_000L
+                        "میلیون" -> 1_000_000L
+                        "هزار" -> 1_000L
                         else -> 1L
                     }
                     val budget = if (numeric > Long.MAX_VALUE / multiplier) Long.MAX_VALUE else numeric * multiplier
-                    val before = normalized.substring(0, token.range.first)
-                    val candidates = when {
+                    val before = queryBody.substring(0, token.range.first)
+                    val values = when {
                         before.contains("اجاره") -> listOf(rawMoney(p.rent).toLongOrNull() ?: 0L)
                         before.contains("رهن") || before.contains("پیش") -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
                         before.contains("فروش") || before.contains("قیمت") -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
-                        p.deal == "فروش" -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
-                        p.deal == "رهن کامل" -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
-                        else -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L, rawMoney(p.rent).toLongOrNull() ?: 0L)
+                        else -> relevantMoneyValues()
                     }.filter { it > 0L }
-                    val isCeiling = multiplier > 1L || before.contains("تا") || numeric.toString().length <= 3
-                    if (candidates.isEmpty()) false
-                    else if (isCeiling) candidates.any { it <= budget }
-                    else candidates.any { it == budget }
+                    val isCeiling = multiplier > 1L || before.contains("تا") || (multiplier == 1L && numericText.length <= 3)
+                    values.any { if (isCeiling) it <= budget else it == budget }
                 }
+                else -> true
             }
-            textOk && numberOk
+            textOk && dealOk && numberOk
         }
         val section = activeSection
         val sectionItems = if (section == null || query.isNotBlank()) found else when(section) {
@@ -764,19 +786,19 @@ class MainActivity : Activity() {
             return
         }
         if (query.isNotBlank()) {
-            items.take(6).forEach { p ->
-                val category = if (p.kind == "کلنگی و مستغلات" || p.kind == "زمین و کلنگی") "کلنگی و مستغلات" else when(p.deal) {
-                    "فروش" -> "فروش"; "رهن کامل" -> "رهن کامل"; else -> "رهن و اجاره"
-                }
-                val row = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                    setPadding(dp(10),dp(9),dp(10),dp(9))
-                    background = rounded(Color.WHITE,15,Color.rgb(224,216,198))
+            items.take(10).forEach { p ->
+                val preview = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(dp(12),dp(11),dp(12),dp(11))
+                    background = rounded(Color.WHITE,16,Color.rgb(224,216,198))
                     elevation = dp(2).toFloat()
                     isClickable = true
                     isFocusable = true
                     setOnClickListener { showPropertyDetails(p) }
+                }
+                val heading = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
                 }
                 val photo = try { val a=JSONArray(p.photos); if(a.length()>0) a.getString(0) else "" } catch (_:Exception) { "" }
                 if (photo.isNotBlank()) {
@@ -785,43 +807,50 @@ class MainActivity : Activity() {
                         background = rounded(pale,10)
                         try { setImageURI(Uri.parse(photo)) } catch (_:Exception) {}
                     }
-                    row.addViewSafely(thumb, LinearLayout.LayoutParams(dp(76),dp(76)).apply { marginEnd=dp(10) })
+                    heading.addViewSafely(thumb, LinearLayout.LayoutParams(dp(92),dp(92)).apply { marginEnd=dp(11) })
                 } else {
                     val noPhoto = TextView(this).apply {
-                        text = "عکس\nندارد"
-                        textSize = 10f
+                        text = "عکس ندارد"
+                        textSize = 11f
                         gravity = Gravity.CENTER
                         setTextColor(muted)
                         background = rounded(pale,10)
                     }
-                    row.addViewSafely(noPhoto, LinearLayout.LayoutParams(dp(76),dp(76)).apply { marginEnd=dp(10) })
+                    heading.addViewSafely(noPhoto, LinearLayout.LayoutParams(dp(92),dp(92)).apply { marginEnd=dp(11) })
                 }
                 val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                info.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },14f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
+                val category = when (p.deal) {
+                    "فروش" -> "فروش"
+                    "رهن کامل" -> "رهن کامل"
+                    else -> "رهن و اجاره"
+                }
+                info.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },15f,navy,true).apply {
+                    maxLines=2
+                    ellipsize=android.text.TextUtils.TruncateAt.END
+                })
+                info.addViewSafely(text(category + "  •  " + p.kind,10f,muted,true).apply { maxLines=1 })
                 val priceLine = when(p.deal) {
                     "فروش" -> "قیمت کل: " + formatMoney(p.price) + " تومان"
-                    "رهن کامل" -> "رهن: " + formatMoney(p.deposit) + " تومان"
-                    else -> "پیش: " + formatMoney(p.deposit) + "  |  اجاره: " + formatMoney(p.rent)
+                    "رهن کامل" -> "رهن کامل: " + formatMoney(p.deposit) + " تومان"
+                    else -> "رهن: " + formatMoney(p.deposit) + "  |  اجاره: " + formatMoney(p.rent)
                 }
-                info.addViewSafely(text(priceLine,11f,blue,true).apply { maxLines=2 })
-                val areaLine = "متراژ: " + p.area + " متر"
-                info.addViewSafely(text(areaLine,10f,muted))
-                val sqm = rawMoney(p.area).toLongOrNull() ?: 0L
-                val total = rawMoney(p.price).toLongOrNull() ?: 0L
-                if (p.deal == "فروش" && sqm > 0 && total > 0) {
-                    info.addViewSafely(text("قیمت هر متر: " + formatMoney((total / sqm).toString()) + " تومان",10f,Color.rgb(174,133,59),true))
+                info.addViewSafely(text(priceLine,12f,blue,true).apply { maxLines=2 })
+                heading.addViewSafely(info,LinearLayout.LayoutParams(0,-2,1f))
+                preview.addViewSafely(heading)
+                val areaValue = rawMoney(p.area).toLongOrNull() ?: 0L
+                val priceValue = rawMoney(p.price).toLongOrNull() ?: 0L
+                preview.addViewSafely(text("متراژ: " + (p.area.ifBlank { "—" }) + " متر",12f,navy,true))
+                if (p.deal == "فروش" && areaValue > 0L && priceValue > 0L) {
+                    preview.addViewSafely(text("قیمت هر متر مربع: " + formatMoney((priceValue / areaValue).toString()) + " تومان",12f,Color.rgb(174,133,59),true))
                 }
-                info.addViewSafely(text("تک‌واحدی: " + p.singleUnit,10f,muted))
+                preview.addViewSafely(text("تک‌واحدی: " + (p.singleUnit.ifBlank { "نامشخص" }),11f,muted))
                 val facilities = mutableListOf<String>()
-                if (p.parking == "دارد") facilities.add("پارکینگ")
-                if (p.elevator == "دارد") facilities.add("آسانسور")
-                if (facilities.isNotEmpty()) info.addViewSafely(text(facilities.joinToString("  •  "),10f,Color.rgb(52,125,91),true))
-                info.addViewSafely(text(category + "  |  " + p.kind,9f,muted).apply { maxLines=1 })
-                row.addViewSafely(info,LinearLayout.LayoutParams(0,-2,1f))
-                row.addViewSafely(text("›",20f,Color.rgb(174,133,59),true))
-                list.addViewSafely(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(3) })
+                if (p.parking.isNotBlank() && p.parking != "نامشخص") facilities.add("پارکینگ: " + p.parking)
+                if (p.elevator.isNotBlank() && p.elevator != "نامشخص") facilities.add("آسانسور: " + p.elevator)
+                if (facilities.isNotEmpty()) preview.addViewSafely(text(facilities.joinToString("    |    "),11f,Color.rgb(52,125,91),true))
+                list.addViewSafely(preview,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(9) })
             }
-            if (items.size > 6) list.addViewSafely(text("۶ مورد اول از " + items.size + " آگهی؛ برای مشاهده همه، جست‌وجو را دقیق‌تر کن.",9f,muted))
+            if (items.size > 10) list.addViewSafely(text("۱۰ مورد اول از " + items.size + " آگهی؛ برای مشاهده همه، جست‌وجو را دقیق‌تر کن.",10f,muted))
             return
         }
         if (displayMode == "grid") {

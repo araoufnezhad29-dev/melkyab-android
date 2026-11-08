@@ -714,29 +714,38 @@ class MainActivity : Activity() {
             val textOk = textWords.all { word ->
                 searchable.contains(word) || (word == "پیش" && p.deal != "فروش")
             }
-            val numberOk = amountTokens.all { token ->
-                val numeric = token.groupValues[1].replace(Regex("[.,٬]"), "").toLongOrNull() ?: 0L
-                val multiplier = when {
-                    token.groupValues[2] == "میلیارد" -> 1_000_000_000L
-                    token.groupValues[2] == "میلیون" -> 1_000_000L
-                    token.groupValues[2] == "هزار" -> 1_000L
-                    bareNumberQuery -> 1_000_000_000L
-                    else -> 1L
+            val numberOk = if (bareNumberQuery) {
+                val digit = normalized.toLongOrNull() ?: 0L
+                val budget = if (digit > Long.MAX_VALUE / 1_000_000_000L) Long.MAX_VALUE else digit * 1_000_000_000L
+                val moneyValues = listOf(p.price, p.deposit, p.rent).mapNotNull { rawMoney(it).toLongOrNull() }.filter { it > 0L }
+                val numericFields = listOf(p.area, p.floor, p.buildingFloors, p.unitsPerFloor, p.unitCount)
+                val moneyMatch = moneyValues.any { it <= budget }
+                val otherNumberMatch = numericFields.any { rawMoney(it).contains(normalized) }
+                moneyMatch || otherNumberMatch
+            } else {
+                amountTokens.all { token ->
+                    val numeric = token.groupValues[1].replace(Regex("[.,٬]"), "").toLongOrNull() ?: 0L
+                    val multiplier = when {
+                        token.groupValues[2] == "میلیارد" -> 1_000_000_000L
+                        token.groupValues[2] == "میلیون" -> 1_000_000L
+                        token.groupValues[2] == "هزار" -> 1_000L
+                        else -> 1L
+                    }
+                    val budget = if (numeric > Long.MAX_VALUE / multiplier) Long.MAX_VALUE else numeric * multiplier
+                    val before = normalized.substring(0, token.range.first)
+                    val candidates = when {
+                        before.contains("اجاره") -> listOf(rawMoney(p.rent).toLongOrNull() ?: 0L)
+                        before.contains("رهن") || before.contains("پیش") -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
+                        before.contains("فروش") || before.contains("قیمت") -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
+                        p.deal == "فروش" -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
+                        p.deal == "رهن کامل" -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
+                        else -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L, rawMoney(p.rent).toLongOrNull() ?: 0L)
+                    }.filter { it > 0L }
+                    val isCeiling = multiplier > 1L || before.contains("تا") || numeric.toString().length <= 3
+                    if (candidates.isEmpty()) false
+                    else if (isCeiling) candidates.any { it <= budget }
+                    else candidates.any { it == budget }
                 }
-                val budget = if (numeric > Long.MAX_VALUE / multiplier) Long.MAX_VALUE else numeric * multiplier
-                val before = normalized.substring(0, token.range.first)
-                val candidates = when {
-                    before.contains("اجاره") -> listOf(rawMoney(p.rent).toLongOrNull() ?: 0L)
-                    before.contains("رهن") || before.contains("پیش") -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
-                    before.contains("فروش") || before.contains("قیمت") -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
-                    p.deal == "فروش" -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
-                    p.deal == "رهن کامل" -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
-                    else -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
-                }.filter { it > 0L }
-                val isCeiling = multiplier > 1L || before.contains("تا") || bareNumberQuery || numeric.toString().length <= 3
-                if (candidates.isEmpty()) false
-                else if (isCeiling) candidates.any { it <= budget }
-                else candidates.any { it == budget }
             }
             textOk && numberOk
         }
@@ -762,8 +771,9 @@ class MainActivity : Activity() {
                 val row = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    setPadding(dp(7),dp(4),dp(7),dp(4))
-                    background = rounded(Color.WHITE,11,Color.rgb(220,227,236))
+                    setPadding(dp(10),dp(9),dp(10),dp(9))
+                    background = rounded(Color.WHITE,15,Color.rgb(224,216,198))
+                    elevation = dp(2).toFloat()
                     isClickable = true
                     isFocusable = true
                     setOnClickListener { showPropertyDetails(p) }
@@ -772,21 +782,43 @@ class MainActivity : Activity() {
                 if (photo.isNotBlank()) {
                     val thumb = ImageView(this).apply {
                         scaleType = ImageView.ScaleType.CENTER_CROP
+                        background = rounded(pale,10)
                         try { setImageURI(Uri.parse(photo)) } catch (_:Exception) {}
                     }
-                    row.addViewSafely(thumb, LinearLayout.LayoutParams(dp(42),dp(42)).apply { marginEnd=dp(7) })
+                    row.addViewSafely(thumb, LinearLayout.LayoutParams(dp(76),dp(76)).apply { marginEnd=dp(10) })
+                } else {
+                    val noPhoto = TextView(this).apply {
+                        text = "عکس\nندارد"
+                        textSize = 10f
+                        gravity = Gravity.CENTER
+                        setTextColor(muted)
+                        background = rounded(pale,10)
+                    }
+                    row.addViewSafely(noPhoto, LinearLayout.LayoutParams(dp(76),dp(76)).apply { marginEnd=dp(10) })
                 }
                 val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                info.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },11f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
+                info.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },14f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
                 val priceLine = when(p.deal) {
-                    "فروش" -> "قیمت: " + formatMoney(p.price) + " تومان"
+                    "فروش" -> "قیمت کل: " + formatMoney(p.price) + " تومان"
                     "رهن کامل" -> "رهن: " + formatMoney(p.deposit) + " تومان"
-                    else -> "پیش: " + formatMoney(p.deposit) + " · اجاره: " + formatMoney(p.rent)
+                    else -> "پیش: " + formatMoney(p.deposit) + "  |  اجاره: " + formatMoney(p.rent)
                 }
-                info.addViewSafely(text(priceLine,9f,blue,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
-                info.addViewSafely(text(category + "  |  " + p.area + " متر",8f,muted).apply { maxLines=1 })
+                info.addViewSafely(text(priceLine,11f,blue,true).apply { maxLines=2 })
+                val areaLine = "متراژ: " + p.area + " متر"
+                info.addViewSafely(text(areaLine,10f,muted))
+                val sqm = rawMoney(p.area).toLongOrNull() ?: 0L
+                val total = rawMoney(p.price).toLongOrNull() ?: 0L
+                if (p.deal == "فروش" && sqm > 0 && total > 0) {
+                    info.addViewSafely(text("قیمت هر متر: " + formatMoney((total / sqm).toString()) + " تومان",10f,Color.rgb(174,133,59),true))
+                }
+                info.addViewSafely(text("تک‌واحدی: " + p.singleUnit,10f,muted))
+                val facilities = mutableListOf<String>()
+                if (p.parking == "دارد") facilities.add("پارکینگ")
+                if (p.elevator == "دارد") facilities.add("آسانسور")
+                if (facilities.isNotEmpty()) info.addViewSafely(text(facilities.joinToString("  •  "),10f,Color.rgb(52,125,91),true))
+                info.addViewSafely(text(category + "  |  " + p.kind,9f,muted).apply { maxLines=1 })
                 row.addViewSafely(info,LinearLayout.LayoutParams(0,-2,1f))
-                row.addViewSafely(text("›",18f,Color.rgb(174,133,59),true))
+                row.addViewSafely(text("›",20f,Color.rgb(174,133,59),true))
                 list.addViewSafely(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(3) })
             }
             if (items.size > 6) list.addViewSafely(text("۶ مورد اول از " + items.size + " آگهی؛ برای مشاهده همه، جست‌وجو را دقیق‌تر کن.",9f,muted))
@@ -990,16 +1022,32 @@ class MainActivity : Activity() {
         content.addViewSafely(text("۳. جزئیات ساختمان و امکانات", 14f, navy, true))
         val buildingFloors = field("تعداد طبقات ساختمان", existing?.buildingFloors ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
         val floor = field("طبقه ملک", existing?.floor ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
-        val singleUnit = option("تک‌واحدی؟", listOf("بله", "خیر"), existing?.singleUnit ?: "بله")
-        val unitsPerFloor = option("تعداد واحد (۲ تا ۵)", listOf("۲","۳","۴","۵"), existing?.unitsPerFloor?.takeIf { it in listOf("۲","۳","۴","۵") } ?: "۲")
-        unitsPerFloor.visibility = if (singleUnit.selectedItem.toString() == "خیر") View.VISIBLE else View.GONE
-        singleUnit.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                unitsPerFloor.visibility = if (singleUnit.selectedItem.toString() == "خیر") View.VISIBLE else View.GONE
-            }
+        content.addViewSafely(buildingFloors)
+        content.addViewSafely(floor)
+        content.addViewSafely(text("تک‌واحدی؟", 12f, muted, true))
+        val singleUnitGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.VERTICAL
+            setPadding(dp(8), dp(2), dp(8), dp(2))
         }
-        content.addViewSafely(buildingFloors); content.addViewSafely(floor); content.addViewSafely(singleUnit); content.addViewSafely(unitsPerFloor)
+        val singleYes = RadioButton(this).apply { text = "بله"; textSize = 14f; isChecked = (existing?.singleUnit ?: "بله") == "بله" }
+        val singleNo = RadioButton(this).apply { text = "خیر"; textSize = 14f; isChecked = existing?.singleUnit == "خیر" }
+        singleUnitGroup.addView(singleYes)
+        singleUnitGroup.addView(singleNo)
+        content.addViewSafely(singleUnitGroup, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
+        val unitsLabel = text("تعداد واحد در هر طبقه", 12f, muted, true)
+        val unitsPerFloor = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, listOf("۲","۳","۴","۵"))
+            setSelection(listOf("۲","۳","۴","۵").indexOf(existing?.unitsPerFloor).takeIf { it >= 0 } ?: 0)
+        }
+        fun updateUnitsVisibility() {
+            val visible = singleNo.isChecked
+            unitsLabel.visibility = if (visible) View.VISIBLE else View.GONE
+            unitsPerFloor.visibility = if (visible) View.VISIBLE else View.GONE
+        }
+        singleUnitGroup.setOnCheckedChangeListener { _, _ -> updateUnitsVisibility() }
+        content.addViewSafely(unitsLabel)
+        content.addViewSafely(unitsPerFloor)
+        updateUnitsVisibility()
         val yesNo = listOf("نامشخص", "دارد", "ندارد")
         val parking = option("پارکینگ", yesNo, existing?.parking ?: "نامشخص")
         val elevator = option("آسانسور", yesNo, existing?.elevator ?: "نامشخص")
@@ -1056,8 +1104,8 @@ class MainActivity : Activity() {
                         master.selectedItem.toString(),toilet.selectedItem.toString(),
                         cabinet.selectedItem.toString(),flooring.selectedItem.toString(),
                         existing?.createdAt ?: System.currentTimeMillis(), address.text.toString(),
-                        buildingFloors.text.toString(), singleUnit.selectedItem.toString(),
-                        if (singleUnit.selectedItem.toString() == "خیر") unitsPerFloor.selectedItem.toString() else "۱"))
+                        buildingFloors.text.toString(), if (singleNo.isChecked) "خیر" else "بله",
+                        if (singleNo.isChecked) unitsPerFloor.selectedItem.toString() else "۱"))
                     refreshList()
                 }
             }.show()

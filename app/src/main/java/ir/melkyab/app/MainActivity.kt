@@ -255,25 +255,46 @@ class MainActivity : Activity() {
         }
         val scroll = ScrollView(this)
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        // سربرگ یکپارچه؛ زمینه با رنگ سرمه‌ای خود لوگو هماهنگ است تا قاب تو در تو دیده نشود.
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(8),dp(8),dp(8),dp(8))
+            setPadding(dp(2), dp(2), dp(2), dp(2))
             background = GradientDrawable(
                 GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(19,35,57), navy, Color.rgb(39,63,91))
-            ).apply { cornerRadius = dp(26).toFloat(); setStroke(dp(1), Color.rgb(190,155,85)) }
+                intArrayOf(Color.rgb(3,18,43), Color.rgb(5,25,59), Color.rgb(8,31,69))
+            ).apply { cornerRadius = dp(24).toFloat() }
             elevation = dp(5).toFloat()
+            clipToOutline = true
         }
         val brandMark = ImageView(this).apply {
             setImageResource(R.drawable.ic_melkyab_mark)
             scaleType = ImageView.ScaleType.FIT_CENTER
-            background = null
-            setPadding(0, 0, 0, 0)
+            setBackgroundColor(Color.rgb(5,25,59))
             contentDescription = "لوگوی ملک‌یاب؛ خانه و ذره‌بین طلایی"
         }
-        header.addView(brandMark, LinearLayout.LayoutParams(dp(220), dp(220)))
-        page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) })
+        header.addView(brandMark, LinearLayout.LayoutParams(-1, dp(226)))
+        page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
+
+        val slogan = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(14), dp(11), dp(14), dp(11))
+            background = GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.WHITE, Color.rgb(250,247,239), Color.WHITE)
+            ).apply { cornerRadius = dp(16).toFloat(); setStroke(dp(1), Color.rgb(208,177,112)) }
+            elevation = dp(2).toFloat()
+        }
+        slogan.addView(text("ساماندهی هوشمند فایل‌های ملکی", 17f, navy, true).apply {
+            gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+        })
+        slogan.addView(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 11f, muted).apply {
+            gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+        })
+        page.addView(slogan, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(14) })
 
         search = field("عنوان")
         page.addView(search, LinearLayout.LayoutParams(-1, dp(50)).apply { bottomMargin = dp(12) })
@@ -288,23 +309,38 @@ class MainActivity : Activity() {
         val addCard = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(18),dp(15),dp(18),dp(15))
+            setPadding(dp(20),dp(14),dp(20),dp(14))
             background = GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(navy, Color.rgb(43,65,94))
-            ).apply { cornerRadius = dp(18).toFloat(); setStroke(dp(1), Color.rgb(190,155,85)) }
+                intArrayOf(Color.rgb(12,30,57), Color.rgb(37,62,91), Color.rgb(12,30,57))
+            ).apply { cornerRadius = dp(20).toFloat(); setStroke(dp(1), Color.rgb(205,166,91)) }
+            elevation = dp(4).toFloat()
             isClickable = true
             isFocusable = true
             setOnClickListener { showEditor(null) }
         }
-        addCard.addView(text("+", 34f, Color.rgb(224,187,112), true))
-        val addText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val plus = TextView(this).apply {
+            text = "+"
+            textSize = 34f
+            setTextColor(Color.rgb(235,195,112))
+            gravity = Gravity.CENTER
+            background = rounded(Color.rgb(53,72,96), 14, Color.rgb(190,155,85))
+        }
+        addCard.addView(plus, LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginEnd = dp(12) })
+        val addText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
         addText.addView(text("ثبت ملک جدید", 18f, Color.WHITE, true))
         addText.addView(text("افزودن فایل و مشخصات ملک", 11f, Color.rgb(220,230,242)))
         addCard.addView(addText, LinearLayout.LayoutParams(0,-2,1f))
-        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(82)).apply { bottomMargin = dp(14) })
+        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(78)).apply { bottomMargin = dp(18) })
 
-        page.addView(text("دسته‌بندی آگهی‌ها", 15f, navy, true))
+        val categoryTitle = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(3), dp(3), dp(3), dp(8))
+        }
+        categoryTitle.addView(text("دسته‌بندی آگهی‌ها", 17f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
+        categoryTitle.addView(text("انتخاب بخش موردنظر", 10f, muted))
+        page.addView(categoryTitle)
         val categories = listOf("فروش", "رهن", "رهن و اجاره", "کلنگی و مستغلات")
         categories.chunked(2).forEach { pair ->
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -312,8 +348,12 @@ class MainActivity : Activity() {
                 val tile = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setPadding(dp(8),dp(10),dp(8),dp(10))
-                    background = rounded(Color.WHITE, 16, Color.rgb(222,228,237))
+                    setPadding(dp(10),dp(12),dp(10),dp(12))
+                    background = GradientDrawable(
+                        GradientDrawable.Orientation.TL_BR,
+                        intArrayOf(Color.WHITE, Color.rgb(250,248,242))
+                    ).apply { cornerRadius = dp(19).toFloat(); setStroke(dp(1), Color.rgb(224,216,198)) }
+                    elevation = dp(3).toFloat()
                     isClickable = true
                     isFocusable = true
                     setOnClickListener { activeSection = category; dealFilter = "همه"; renderSection() }
@@ -324,20 +364,24 @@ class MainActivity : Activity() {
                     "رهن و اجاره" -> "▤"
                     else -> "⌑"
                 }
-                tile.addView(text(symbol, 29f, Color.rgb(176,137,65), true).apply {
+                val iconCircle = TextView(this).apply {
+                    text = symbol
+                    textSize = 27f
+                    setTextColor(Color.rgb(174,133,59))
                     gravity = Gravity.CENTER
-                    setPadding(0, dp(2), 0, dp(4))
-                })
+                    background = rounded(Color.rgb(247,241,226), 30, Color.rgb(230,211,169))
+                }
+                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(52), dp(52)).apply { bottomMargin = dp(8) })
                 tile.addView(text(category, 14f, navy, true).apply {
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
                     maxLines = 2
                     minLines = 1
                     includeFontPadding = false
-                    setPadding(dp(2), dp(8), dp(2), dp(4))
+                    setPadding(dp(2), dp(3), dp(2), dp(3))
                 })
-                row.addView(tile, LinearLayout.LayoutParams(0,dp(124),1f).apply {
-                    marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(10)
+                row.addView(tile, LinearLayout.LayoutParams(0,dp(132),1f).apply {
+                    marginEnd = dp(6); marginStart = dp(6); bottomMargin = dp(12)
                 })
             }
             page.addView(row)
@@ -349,13 +393,16 @@ class MainActivity : Activity() {
         root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
         val credit = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.END or Gravity.CENTER_VERTICAL
-            setPadding(dp(4), dp(5), dp(4), dp(2))
+            gravity = Gravity.CENTER
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            background = rounded(Color.rgb(231,237,245), 12, Color.rgb(215,198,163))
         }
-        credit.addView(text("طراح: مهندس رئوف نژاد", 10f, Color.rgb(125,137,153)).apply {
-            gravity = Gravity.CENTER_VERTICAL
+        credit.addView(text("طراح: مهندس رئوف نژاد", 11f, navy, true).apply {
+            gravity = Gravity.CENTER
         })
-        root.addView(credit, LinearLayout.LayoutParams(-1, dp(28)))
+        page.addView(credit, LinearLayout.LayoutParams(-1, -2).apply {
+            topMargin = dp(14); bottomMargin = dp(12)
+        })
         setContentView(root)
         list.removeAllViews()
     }
@@ -372,7 +419,9 @@ class MainActivity : Activity() {
         val toolbar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(4), dp(4), dp(4), dp(10))
+            setPadding(dp(8), dp(7), dp(8), dp(7))
+            background = rounded(Color.WHITE, 15, Color.rgb(224,216,198))
+            elevation = dp(2).toFloat()
         }
         toolbar.addView(button("‹ بازگشت", {
             activeSection = null
@@ -399,8 +448,8 @@ class MainActivity : Activity() {
         })
         toolbar.addView(modeButton, LinearLayout.LayoutParams(-2, dp(44)))
         page.addView(toolbar, LinearLayout.LayoutParams(-1, -2).apply {
-            topMargin = dp(14)
-            bottomMargin = dp(12)
+            topMargin = dp(24)
+            bottomMargin = dp(14)
         })
 
         search = field("عنوان")

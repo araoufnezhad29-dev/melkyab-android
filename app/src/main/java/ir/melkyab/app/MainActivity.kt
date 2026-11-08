@@ -384,7 +384,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             setPadding(dp(6), dp(2), dp(6), dp(2))
-            background = Color.TRANSPARENT
+            setBackgroundColor(Color.TRANSPARENT)
         }
         credit.addView(text("طراح: مهندس رئوف نژاد", 11f, navy, true).apply {
             gravity = Gravity.CENTER

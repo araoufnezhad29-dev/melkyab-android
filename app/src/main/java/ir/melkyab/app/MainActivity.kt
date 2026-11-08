@@ -320,7 +320,7 @@ class MainActivity : Activity() {
             marginStart = dp(8)
         })
         val modeButton = button(if (displayMode == "list") "نمایش: فهرستی ▾" else "نمایش: شبکه‌ای ▾", {
-            val popup = PopupMenu(this, it)
+            val popup = PopupMenu(this, toolbar.getChildAt(toolbar.childCount - 1))
             popup.menu.add("نمایش فهرستی").setOnMenuItemClickListener {
                 displayMode = "list"
                 getPreferences(Context.MODE_PRIVATE).edit().putString("display_mode", displayMode).apply()

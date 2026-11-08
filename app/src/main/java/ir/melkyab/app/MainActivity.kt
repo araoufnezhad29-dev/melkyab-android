@@ -372,7 +372,7 @@ class MainActivity : Activity() {
             elevation = dp(4).toFloat()
             isClickable = true
             isFocusable = true
-            setOnClickListener { showEditor(null) }
+            setOnClickListener { openEditorSafely(null) }
         }
         val plus = TextView(this).apply {
             text = "+"
@@ -383,10 +383,17 @@ class MainActivity : Activity() {
         }
         addCard.addView(plus, LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(12) })
         val addText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
-        addText.addView(text("ثبت ملک جدید", 15f, Color.WHITE, true))
-        addText.addView(text("افزودن فایل و مشخصات ملک", 9f, Color.rgb(220,230,242)))
-        addCard.addView(addText, LinearLayout.LayoutParams(0,-2,1f))
-        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(62)).apply { bottomMargin = dp(7) })
+        addText.addView(text("ثبت ملک جدید", 16f, Color.WHITE, true).apply {
+            includeFontPadding = false
+            setPadding(0, dp(2), 0, dp(2))
+        }, LinearLayout.LayoutParams(-1, dp(25)))
+        addText.addView(text("افزودن فایل و مشخصات ملک", 11f, Color.rgb(220,230,242)).apply {
+            includeFontPadding = false
+            setPadding(0, dp(2), 0, dp(2))
+            maxLines = 1
+        }, LinearLayout.LayoutParams(-1, dp(20)))
+        addCard.addView(addText, LinearLayout.LayoutParams(0, -2, 1f))
+        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(76)).apply { bottomMargin = dp(7) })
 
         val categoryTitle = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -421,13 +428,13 @@ class MainActivity : Activity() {
                 }
                 val iconCircle = TextView(this).apply {
                     text = symbol
-                    textSize = 19f
+                    textSize = 22f
                     setTextColor(Color.rgb(174,133,59))
                     gravity = Gravity.CENTER
                     background = rounded(Color.rgb(247,241,226), 30, Color.rgb(230,211,169))
                 }
-                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(29), dp(29)).apply { bottomMargin = dp(6) })
-                tile.addView(text(category, 15f, navy, true).apply {
+                tile.addView(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
+                tile.addView(text(category, 16f, navy, true).apply {
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
                     maxLines = 2
@@ -435,7 +442,7 @@ class MainActivity : Activity() {
                     includeFontPadding = false
                     setPadding(dp(2), dp(3), dp(2), dp(3))
                 })
-                row.addView(tile, LinearLayout.LayoutParams(0,dp(86),1f).apply {
+                row.addView(tile, LinearLayout.LayoutParams(0,dp(102),1f).apply {
                     marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(5)
                 })
             }
@@ -843,6 +850,19 @@ class MainActivity : Activity() {
         card.addView(actions)
         card.setOnClickListener { showPropertyDetails(p) }
         return card
+    }
+
+    private fun openEditorSafely(existing: Property?) {
+        try {
+            showEditor(existing)
+        } catch (e: Exception) {
+            android.util.Log.e("MelkYab", "Unable to open property editor", e)
+            AlertDialog.Builder(this)
+                .setTitle("خطا در باز کردن فرم ملک")
+                .setMessage("فرم باز نشد. لطفاً از این پیام عکس بگیر و بفرست تا علت دقیق خطا را برطرف کنم.\n\n" + (e.localizedMessage ?: e.javaClass.simpleName))
+                .setPositiveButton("باشه", null)
+                .show()
+        }
     }
 
     private fun showEditor(existing: Property?) {

@@ -94,6 +94,7 @@ class MainActivity : Activity() {
     private var selectedPhotos = mutableListOf<String>()
     private var displayMode = "list"
     private var dealFilter = "همه"
+    private var activeSection: String? = null
     private val navy = Color.rgb(28, 48, 75)
     private val blue = Color.rgb(48, 105, 170)
     private val pale = Color.rgb(239, 244, 250)
@@ -209,43 +210,122 @@ class MainActivity : Activity() {
             setPadding(dp(16),dp(12),dp(16),dp(8))
             setBackgroundColor(pale)
         }
+        val scroll = ScrollView(this)
+        val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val header = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL; setPadding(dp(16),dp(14),dp(16),dp(14))
-            background = rounded(navy, 18)
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(16),dp(18),dp(16),dp(18))
+            background = rounded(navy, 20)
         }
-        header.addView(text("ملک‌یاب", 25f, Color.WHITE, true))
-        header.addView(text("مدیریت و دسته‌بندی فایل‌های ملکی", 13f, Color.rgb(220,230,242)))
-        root.addView(header)
-        root.addView(text("جست‌وجو", 13f, muted, true))
-        search = field("عنوان، شهر یا توضیحات را بنویسید")
-        root.addView(search)
+        header.addView(text("⌂", 34f, Color.rgb(220,180,95), true).apply { gravity = Gravity.CENTER })
+        header.addView(text("ملک‌یاب", 27f, Color.WHITE, true).apply { gravity = Gravity.CENTER })
+        page.addView(header, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(12) })
+
+        val intro = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14),dp(12),dp(14),dp(12))
+            background = rounded(Color.WHITE, 16, Color.rgb(224,215,192))
+        }
+        intro.addView(text("مدیریت و دسته‌بندی فایل‌های ملکی", 15f, navy, true))
+        page.addView(intro, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(12) })
+
+        search = field("عنوان")
+        page.addView(search, LinearLayout.LayoutParams(-1, dp(50)).apply { bottomMargin = dp(12) })
         search.addTextChangedListener(object: TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList() }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                if (activeSection != null) refreshList()
+            }
             override fun afterTextChanged(s: Editable?) {}
         })
-        root.addView(button("+ ثبت ملک جدید", { showEditor(null) }, true), LinearLayout.LayoutParams(-1, dp(50)).apply { topMargin = dp(10); bottomMargin = dp(8) })
 
-        val filters = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("همه", "فروش", "رهن کامل", "رهن و اجاره").forEach { label ->
-            val b = button(label, { dealFilter = label; refreshList() }, dealFilter == label)
-            filters.addView(b, LinearLayout.LayoutParams(0, dp(42), 1f).apply { marginEnd = dp(3) })
+        val addCard = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(18),dp(15),dp(18),dp(15))
+            background = GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(navy, Color.rgb(43,65,94))
+            ).apply { cornerRadius = dp(18).toFloat(); setStroke(dp(1), Color.rgb(190,155,85)) }
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { showEditor(null) }
         }
-        root.addView(filters)
-        val modeRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; orientation = LinearLayout.HORIZONTAL }
-        modeRow.addView(text("نحوه نمایش", 13f, muted, true), LinearLayout.LayoutParams(0, -2, 1f))
-        modeRow.addView(button(if (displayMode == "list") "▤ زیر هم" else "▤ زیر هم", {
-            displayMode = "list"; getPreferences(Context.MODE_PRIVATE).edit().putString("display_mode",displayMode).apply(); refreshList()
-        }, displayMode == "list"))
-        modeRow.addView(button("▦ چهارستونه", {
-            displayMode = "grid"; getPreferences(Context.MODE_PRIVATE).edit().putString("display_mode",displayMode).apply(); refreshList()
-        }, displayMode == "grid"))
-        root.addView(modeRow)
-        val scroll = ScrollView(this)
-        list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0,dp(8),0,0) }
-        scroll.addView(list)
+        addCard.addView(text("+", 34f, Color.rgb(224,187,112), true))
+        val addText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        addText.addView(text("ثبت ملک جدید", 18f, Color.WHITE, true))
+        addText.addView(text("افزودن فایل و مشخصات ملک", 11f, Color.rgb(220,230,242)))
+        addCard.addView(addText, LinearLayout.LayoutParams(0,-2,1f))
+        page.addView(addCard, LinearLayout.LayoutParams(-1, dp(82)).apply { bottomMargin = dp(14) })
+
+        page.addView(text("دسته‌بندی آگهی‌ها", 15f, navy, true))
+        val categories = listOf("فروش", "رهن", "رهن و اجاره", "کلنگی و مستغلات")
+        categories.chunked(2).forEach { pair ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            pair.forEach { category ->
+                val tile = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                    setPadding(dp(8),dp(14),dp(8),dp(14))
+                    background = rounded(Color.WHITE, 16, Color.rgb(222,228,237))
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener { activeSection = category; search.setText(""); renderSection() }
+                }
+                val symbol = when(category) {
+                    "فروش" -> "◇"
+                    "رهن" -> "⌂"
+                    "رهن و اجاره" -> "▤"
+                    else -> "⌑"
+                }
+                tile.addView(text(symbol, 25f, Color.rgb(176,137,65), true).apply { gravity = Gravity.CENTER })
+                tile.addView(text(category, 14f, navy, true).apply { gravity = Gravity.CENTER })
+                row.addView(tile, LinearLayout.LayoutParams(0,dp(100),1f).apply {
+                    marginEnd = dp(5); marginStart = dp(5); bottomMargin = dp(9)
+                })
+            }
+            page.addView(row)
+        }
+
+        list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        page.addView(list)
+        scroll.addView(page)
         root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
         setContentView(root)
+        list.removeAllViews()
+    }
+
+    private fun renderSection() {
+        if (!::list.isInitialized || activeSection == null) return
+        list.removeAllViews()
+        val heading = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        heading.addView(text(activeSection!!, 18f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
+        heading.addView(button("بازگشت", { activeSection = null; search.setText(""); render() }))
+        list.addView(heading)
+        val filters = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val filterLabels = if (activeSection == "کلنگی و مستغلات") listOf("همه نوع معامله","فروش","رهن کامل","رهن و اجاره")
+            else listOf("همه", "فروش", "رهن کامل", "رهن و اجاره")
+        filterLabels.chunked(2).forEach { labels ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            labels.forEach { label ->
+                row.addView(button(label, {
+                    dealFilter = if (label == "همه نوع معامله") "همه" else label
+                    refreshList()
+                }, (if (label == "همه نوع معامله") "همه" else label) == dealFilter),
+                    LinearLayout.LayoutParams(0,dp(42),1f).apply { marginEnd=dp(4); bottomMargin=dp(4) })
+            }
+            filters.addView(row)
+        }
+        list.addView(filters)
+        val modeRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL; orientation = LinearLayout.HORIZONTAL }
+        modeRow.addView(text("نحوه نمایش", 13f, muted, true), LinearLayout.LayoutParams(0,-2,1f))
+        modeRow.addView(button("زیر هم", { displayMode="list"; getPreferences(Context.MODE_PRIVATE).edit().putString("display_mode",displayMode).apply(); refreshList() }, displayMode=="list"))
+        modeRow.addView(button("چهارستونه", { displayMode="grid"; getPreferences(Context.MODE_PRIVATE).edit().putString("display_mode",displayMode).apply(); refreshList() }, displayMode=="grid"))
+        list.addView(modeRow)
+        val results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        list.addView(results)
+        list = results
         refreshList()
     }
 
@@ -282,12 +362,21 @@ class MainActivity : Activity() {
     }
 
     private fun refreshList() {
-        if (!::list.isInitialized) return
+        if (!::list.isInitialized || activeSection == null) return
         list.removeAllViews()
-        val found = db.all(if (::search.isInitialized) search.text.toString() else "")
-        val items = if (dealFilter == "همه") found else found.filter { it.deal == dealFilter }
+        val query = if (::search.isInitialized) search.text.toString() else ""
+        val found = db.all(query)
+        val section = activeSection!!
+        val sectionItems = when(section) {
+            "فروش" -> found.filter { it.deal == "فروش" }
+            "رهن" -> found.filter { it.deal == "رهن کامل" }
+            "رهن و اجاره" -> found.filter { it.deal == "رهن و اجاره" }
+            "کلنگی و مستغلات" -> found.filter { it.kind == "کلنگی و مستغلات" || it.kind == "زمین و کلنگی" }
+            else -> emptyList()
+        }
+        val items = if (dealFilter == "همه") sectionItems else sectionItems.filter { it.deal == dealFilter }
         if (items.isEmpty()) {
-            list.addView(text(if (dealFilter == "همه") "هنوز ملکی ثبت نشده است." else "در بخش «" + dealFilter + "» ملکی ثبت نشده است.", 14f, muted))
+            list.addView(text("در بخش «" + section + "» هنوز فایلی ثبت نشده است.", 14f, muted))
             return
         }
         if (displayMode == "grid") {
@@ -366,7 +455,7 @@ class MainActivity : Activity() {
         }
         content.addView(dealSpinner)
         content.addView(text("۲. مشخصات ملک", 14f, navy, true))
-        val kinds = listOf("آپارتمان","خانه و ویلایی","زمین و کلنگی","مغازه و تجاری")
+        val kinds = listOf("آپارتمان","خانه و ویلایی","کلنگی و مستغلات","مغازه و تجاری")
         val spinner = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, kinds)
             setSelection(kinds.indexOf(existing?.kind).takeIf { it >= 0 } ?: 0)

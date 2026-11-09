@@ -14,7 +14,7 @@ data class DivarOnlineAd(
 )
 
 object DivarOnlineSearch {
-    fun search(categoryPath: String, query: String): List<DivarOnlineAd> {
+    fun search(categoryPath: String, query: String, filters: JSONObject = JSONObject()): List<DivarOnlineAd> {
         val category = when (categoryPath) {
             "buy-villa" -> "villa-sell"
             "rent-villa" -> "villa-rent"
@@ -26,6 +26,12 @@ object DivarOnlineSearch {
             else -> "apartment-sell"
         }
         val formData = JSONObject().put("category", JSONObject().put("str", JSONObject().put("value", category)))
+        val filterKeys = filters.keys()
+        while (filterKeys.hasNext()) {
+            val key = filterKeys.next()
+            val value = filters.opt(key)
+            if (value != null && value != JSONObject.NULL) formData.put(key, value)
+        }
         val body = JSONObject()
             .put("source_view", "FILTER")
             .put("city_ids", org.json.JSONArray().put("1"))

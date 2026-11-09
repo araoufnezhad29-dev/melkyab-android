@@ -116,14 +116,14 @@ class OnlineAdWebViewActivity : Activity() {
         val script = """
             (function() {
               try {
-                const norm = s => (s || '').replace(/\\s+/g, ' ').trim();
+                const norm = s => (s || '').replace(/\s+/g, ' ').trim();
                 const anchors = Array.from(document.querySelectorAll('a[href]'));
                 const found = [];
                 const seen = new Set();
                 for (const a of anchors) {
                   let href;
                   try { href = new URL(a.getAttribute('href'), location.href).href; } catch(e) { continue; }
-                  if (!/kashano\\.ir$/i.test(new URL(href).hostname)) continue;
+                  if (!/kashano\.ir$/i.test(new URL(href).hostname)) continue;
                   if (href === location.href || /#|javascript:/i.test(href)) continue;
                   let node = a;
                   let best = null;
@@ -141,7 +141,7 @@ class OnlineAdWebViewActivity : Activity() {
                   const img = (best || a).querySelector('img');
                   const titleNode = (best || a).querySelector('h1,h2,h3,h4,[class*=title],[class*=Title]');
                   const title = norm(titleNode ? titleNode.innerText : (a.innerText || text.split(' ').slice(0,12).join(' ')));
-                  found.push({title:title.slice(0,180), summary:text.slice(0,700), price:(text.match(/[\\d۰-۹٠-٩][\\d۰-۹٠-٩.,٬،\\s]*(?:میلیارد|میلیون)?\\s*تومان/) || [''])[0], image:img ? (img.currentSrc || img.src || '') : '', url:href});
+                  found.push({title:title.slice(0,180), summary:text.slice(0,700), price:(text.match(/[\d۰-۹٠-٩][\d۰-۹٠-٩.,٬،\s]*(?:میلیارد|میلیون)?\s*تومان/) || [''])[0], image:img ? (img.currentSrc || img.src || '') : '', url:href});
                   if (found.length >= 80) break;
                 }
                 return JSON.stringify({url:location.href, items:found});

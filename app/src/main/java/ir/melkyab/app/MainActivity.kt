@@ -829,7 +829,7 @@ class MainActivity : Activity() {
         val elevator = yesNoSpinner("آسانسور")
 
         panel.addViewSafely(text("منابع دریافت کارت آگهی: دیوار و شیپور", 12f, navy, true))
-        panel.addViewSafely(button("جست‌وجوی مستقیم در کاشانو", {
+        panel.addViewSafely(button("باز کردن سایت کاشانو داخل ملک‌یاب", {
             try {
                 startActivity(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java)
                     .putExtra(OnlineAdWebViewActivity.EXTRA_URL, "https://kashano.ir/"))

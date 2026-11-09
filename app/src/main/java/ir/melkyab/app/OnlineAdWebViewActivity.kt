@@ -116,45 +116,44 @@ class OnlineAdWebViewActivity : Activity() {
         val script = """
             (function() {
               try {
-                const norm = s => (s || '').replace(/\s+/g, ' ').trim();
+                const norm = s => (s || '').replace(/[\\u200c\\u200f\\u202a-\\u202e]/g, ' ').replace(/\\s+/g, ' ').trim();
                 const anchors = Array.from(document.querySelectorAll('a[href]'));
                 const found = [];
                 const seen = new Set();
-                const excluded = /(^|\/)(contact|contact-us|about|about-us|privacy|privacy-policy|terms|terms-and-conditions|rules|login|register|signup|faq|help|blog|news)(\/|$)/i;
-                const propertyWords = /(متر|متری|خواب|فروش|رهن|اجاره|آپارتمان|خانه|ملک)/;
+                const excluded = /(^|\\/)(contact|contact-us|about|about-us|privacy|privacy-policy|terms|terms-and-conditions|rules|login|register|signup|faq|help|blog|news|advertise|advertising|support)(\\/|$)/i;
+                const propertyWords = /(متر|متری|خواب|خوابه|فروش|رهن|اجاره|آپارتمان|خانه|ملک|ویلایی|ویلا|مسکونی|تجاری|واحد|طبقه|ودیعه|قیمت)/;
                 const priceWords = /(تومان|میلیارد|میلیون|ودیعه|قیمت|پیش)/;
+                const numericPrice = /[\\d۰-۹٠-٩][\\d۰-۹٠-٩.,٬،\\s]*(?:تومان|میلیارد|میلیون)/;
                 for (const a of anchors) {
                   let u;
                   try { u = new URL(a.getAttribute('href'), location.href); } catch(e) { continue; }
-                  if (!/(^|\.)kashano\.ir$/i.test(u.hostname)) continue;
-                  if (u.origin === location.origin && u.pathname === location.pathname && u.search === location.search) continue;
-                  if (excluded.test(u.pathname) || u.pathname.split('/').filter(Boolean).length < 2) continue;
-                  if (/^(mailto:|tel:|javascript:)/i.test(a.getAttribute('href') || '')) continue;
-
+                  if (!/(^|\\.)kashano\\.ir$/i.test(u.hostname)) continue;
+                  if (u.protocol !== 'http:' && u.protocol !== 'https:') continue;
+                  if (excluded.test(u.pathname)) continue;
+                  if (u.pathname === '/' || u.pathname === '') continue;
+                  const href = u.href.split('#')[0];
+                  if (seen.has(href)) continue;
                   let card = null;
-                  for (let node = a, depth = 0; node && depth < 7; node = node.parentElement, depth++) {
+                  for (let node = a, depth = 0; node && depth < 9; node = node.parentElement, depth++) {
                     const t = norm(node.innerText || node.textContent);
-                    if (t.length < 25 || t.length > 700) continue;
+                    if (t.length < 18 || t.length > 1400) continue;
                     const hasProperty = propertyWords.test(t);
-                    const hasPrice = priceWords.test(t) || /[\d۰-۹٠-٩][\d۰-۹٠-٩.,٬،\s]*(?:میلیارد|میلیون|تومان)/.test(t);
-                    const hasCardStructure = !!node.querySelector('img, h1, h2, h3, h4, [class*=card], [class*=Card], [class*=title], [class*=Title]');
-                    if (hasProperty && hasPrice && hasCardStructure) {
-                      card = node;
-                      break;
-                    }
+                    const hasPrice = priceWords.test(t) || numericPrice.test(t);
+                    const hasVisualCard = !!node.querySelector('img, picture, h1, h2, h3, h4, [class*=card], [class*=Card], [class*=title], [class*=Title]');
+                    if (hasVisualCard && (hasProperty || hasPrice)) { card = node; break; }
                   }
                   if (!card) continue;
-
                   const text = norm(card.innerText || card.textContent);
-                  if (!text || text.length > 700 || !propertyWords.test(text)) continue;
-                  const href = u.href;
-                  if (seen.has(href)) continue;
-                  seen.add(href);
-                  const img = card.querySelector('img');
+                  if (!text || text.length > 1400) continue;
+                  const img = card.querySelector('img, picture img');
                   const titleNode = card.querySelector('h1,h2,h3,h4,[class*=title],[class*=Title]');
-                  const title = norm(titleNode ? titleNode.innerText : (a.innerText || text.split(' ').slice(0,12).join(' ')));
-                  const price = (text.match(/[\d۰-۹٠-٩][\d۰-۹٠-٩.,٬،\s]*(?:میلیارد|میلیون)?\s*(?:تومان|میلیون|میلیارد)/) || [''])[0];
-                  found.push({title:title.slice(0,180), summary:text.slice(0,700), price:price, image:img ? (img.currentSrc || img.src || '') : '', url:href});
+                  let title = norm(titleNode ? titleNode.innerText : (a.innerText || ''));
+                  if (!title || title.length < 3) title = text.split(' ').slice(0, 14).join(' ');
+                  const price = (text.match(/[\\d۰-۹٠-٩][\\d۰-۹٠-٩.,٬،\\s]*(?:تومان|میلیارد|میلیون)/) || [''])[0];
+                  const imageUrl = img ? (img.currentSrc || img.src || img.getAttribute('data-src') || '') : '';
+                  if (!propertyWords.test(text) && !priceWords.test(text) && !numericPrice.test(text)) continue;
+                  seen.add(href);
+                  found.push({title:title.slice(0,180), summary:text.slice(0,900), price:price, image:imageUrl, url:href});
                   if (found.length >= 80) break;
                 }
                 return JSON.stringify({url:location.href, items:found});

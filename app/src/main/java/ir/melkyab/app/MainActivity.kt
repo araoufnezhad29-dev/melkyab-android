@@ -704,7 +704,7 @@ class MainActivity : Activity() {
             setHintTextColor(Color.rgb(153,151,143))
         }
         val tehranAreas = listOf(
-            "اکباتان","بیمه","آزادی","تهرانسر","صادقیه","فردوس","جنت‌آباد شمالی","جنت‌آباد مرکزی","جنت‌آباد جنوبی",
+            "اکباتان","بیمه","آزادی","تهرانسر","اجاره‌دار","گرگان","خواجه نظام","خواجه‌نظام","معلم","حشمتیه","صادقیه","فردوس","جنت‌آباد شمالی","جنت‌آباد مرکزی","جنت‌آباد جنوبی",
             "پونک","مرزداران","شهرک غرب","سعادت‌آباد","گیشا","ستارخان","طرشت","آریاشهر","شهرآرا",
             "یوسف‌آباد","امیرآباد","فاطمی","ونک","گاندی","جردن","میرداماد","ظفر","داوودیه","قلهک",
             "دروس","پاسداران","هروی","اختیاریه","فرمانیه","نیاوران","تجریش","زعفرانیه","ولنجک","الهیه",
@@ -736,13 +736,46 @@ class MainActivity : Activity() {
         val minArea = plainField("حداقل متراژ", "مثلاً ۷۰").apply { inputType = InputType.TYPE_CLASS_NUMBER }
         val maxArea = plainField("حداکثر متراژ", "مثلاً ۱۲۰").apply { inputType = InputType.TYPE_CLASS_NUMBER }
 
+        fun attachOnlineAmountSuggestions(target: EditText, fieldName: String) {
+            val block = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
+            block.addViewSafely(text("مبالغ پیشنهادی $fieldName", 9f, muted, true))
+            val horizontal = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
+            val suggestions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+            horizontal.addView(suggestions)
+            block.addViewSafely(horizontal, LinearLayout.LayoutParams(-1, -2))
+            panel.addViewSafely(block, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
+            target.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                override fun afterTextChanged(s: Editable?) {
+                    val digits = rawMoney(s?.toString() ?: "")
+                    val seed = digits.toLongOrNull() ?: 0L
+                    suggestions.removeAllViews()
+                    if (digits.length !in 1..3 || seed <= 0L) { block.visibility = View.GONE; return }
+                    block.visibility = View.VISIBLE
+                    listOf(1_000_000L, 10_000_000L, 100_000_000L, 1_000_000_000L, 10_000_000_000L).forEach { scale ->
+                        val amount = scaledSuggestionAmount(seed, scale)
+                        val chip = TextView(this@MainActivity).apply {
+                            text = compactMoneyLabel(amount); textSize = 10f; setTextColor(blue)
+                            gravity = Gravity.CENTER; setPadding(dp(8), dp(5), dp(8), dp(5))
+                            background = rounded(Color.WHITE, 8, Color.rgb(220,227,236))
+                            isClickable = true; isFocusable = true
+                            setOnClickListener { target.setText(amount.toString()); target.setSelection(target.text.length) }
+                        }
+                        suggestions.addView(chip, LinearLayout.LayoutParams(-2, -2).apply { marginEnd = dp(5) })
+                    }
+                }
+            })
+        }
         fun moneyRange(label: String): Pair<EditText, EditText> {
             panel.addViewSafely(text("حداقل $label (تومان)", 12f, navy, true))
             val min = moneyField("حداقل مبلغ", "")
             panel.addViewSafely(min, LinearLayout.LayoutParams(-1, dp(44)))
+            attachOnlineAmountSuggestions(min, "حداقل $label")
             panel.addViewSafely(text("حداکثر $label (تومان)", 12f, navy, true))
             val max = moneyField("حداکثر مبلغ", "")
             panel.addViewSafely(max, LinearLayout.LayoutParams(-1, dp(44)))
+            attachOnlineAmountSuggestions(max, "حداکثر $label")
             return min to max
         }
         val saleRange = moneyRange("قیمت فروش")
@@ -786,7 +819,7 @@ class MainActivity : Activity() {
         val storage = yesNoSpinner("انباری")
         val elevator = yesNoSpinner("آسانسور")
 
-        panel.addViewSafely(text("منبع آگهی: دیوار", 12f, navy, true))
+        panel.addViewSafely(text("منابع آگهی: دیوار، شیپور و کاشانو", 12f, navy, true))
         val searchButton = button("جست‌وجو در اینترنت", {}, true)
         panel.addViewSafely(searchButton, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         page.addViewSafely(panel, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
@@ -856,9 +889,9 @@ class MainActivity : Activity() {
                                 setOnClickListener {
                                     val uri = Uri.parse(ad.url)
                                     try {
-                                        startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri).setPackage("com.android.chrome"))
+                                        startActivity(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java).putExtra(OnlineAdWebViewActivity.EXTRA_URL, ad.url))
                                     } catch (_: Exception) {
-                                        try { startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri)) }
+                                        try { startActivity(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java).putExtra(OnlineAdWebViewActivity.EXTRA_URL, ad.url)) }
                                         catch (_: Exception) { Toast.makeText(this@MainActivity, "مرورگر در دسترس نیست", Toast.LENGTH_SHORT).show() }
                                     }
                                 }
@@ -872,7 +905,7 @@ class MainActivity : Activity() {
                             details.addViewSafely(text(ad.title, 13f, navy, true))
                             if (ad.price.isNotBlank()) details.addViewSafely(text(ad.price, 12f, blue, true))
                             if (ad.summary.isNotBlank()) details.addViewSafely(text(ad.summary, 10f, muted).apply { maxLines = 2 })
-                            details.addViewSafely(text("منبع: دیوار  ·  مشاهده آگهی در مرورگر", 10f, muted))
+                            details.addViewSafely(text("مشاهده آگهی اصلی داخل ملک‌یاب", 10f, muted))
                             card.addViewSafely(details, LinearLayout.LayoutParams(0, -2, 1f))
                             resultList.addViewSafely(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
                             if (ad.imageUrl.isNotBlank()) Thread {

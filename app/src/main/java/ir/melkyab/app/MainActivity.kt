@@ -713,7 +713,7 @@ class MainActivity : Activity() {
         }
         panel.addViewSafely(text("تعداد اتاق", 12f, navy, true))
         panel.addViewSafely(rooms, LinearLayout.LayoutParams(-1, dp(44)))
-        val sourceNames = listOf("همه منابع", "دیوار", "شیپور", "کاشانو", "کاشانه")
+        val sourceNames = listOf("همه منابع", "دیوار", "شیپور", "کاشانو", "سایر سایت‌ها")
         var selectedSource = "همه منابع"
         val sourceRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val sourceButtons = mutableMapOf<String, Button>()
@@ -758,8 +758,8 @@ class MainActivity : Activity() {
                 "دیوار" -> "site:divar.ir/v"
                 "شیپور" -> "site:sheypoor.com"
                 "کاشانو" -> "site:kashano.ir"
-                "کاشانه" -> "site:kashane.com"
-                else -> "(site:divar.ir/v OR site:sheypoor.com OR site:kashano.ir OR site:kashane.com)"
+                "سایر سایت‌ها" -> "(site:zoomila.com OR site:kilid.com OR site:ganje.ir OR site:melk20.com)"
+                else -> "(site:divar.ir OR site:sheypoor.com OR site:kashano.ir OR site:zoomila.com OR site:kilid.com OR site:ganje.ir)"
             }
             web.loadUrl("https://www.google.com/search?q=" + Uri.encode("$sites $terms آگهی ملک"))
             (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)

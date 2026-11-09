@@ -58,10 +58,12 @@ object DivarOnlineSearch {
 
     fun search(categoryPath: String, query: String, filters: JSONObject = JSONObject()): List<DivarOnlineAd> {
         val category = when (categoryPath) {
-            "buy-villa", "buy-old-house" -> "buy-residential"
-            "rent-villa", "rent-old-house" -> "residential-rent"
-            "buy-commercial" -> "buy-commercial-property"
-            "rent-commercial" -> "rent-commercial-property"
+            "buy-villa" -> "villa-sell"
+            "rent-villa" -> "villa-rent"
+            "buy-old-house" -> "old-house-sell"
+            "rent-old-house" -> "old-house-rent"
+            "buy-commercial" -> "commercial-sell"
+            "rent-commercial" -> "commercial-rent"
             "rent-apartment" -> "apartment-rent"
             else -> "apartment-sell"
         }
@@ -105,7 +107,7 @@ object DivarOnlineSearch {
                 val token = action?.optString("token").orEmpty().ifBlank { data.optString("token") }
                 if (token.isBlank() || result.containsKey(token)) continue
                 val title = data.optString("title").ifBlank { "آگهی دیوار" }
-                val webInfo = action?.optJSONObject("web_info")
+                val webInfo = data.optJSONObject("web_info")
                 val district = webInfo?.optString("district_persian").orEmpty()
                 val bottom = data.optString("bottom_description_text")
                 val summary = listOf(district, bottom).filter { it.isNotBlank() }.distinct().joinToString(" · ")

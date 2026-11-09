@@ -114,6 +114,7 @@ class MainActivity : Activity() {
     private var activeSection: String? = null
     private var searchSubmitted = false
     private var systemBackCallback: OnBackInvokedCallback? = null
+    private var kashanoResultHandler: ((String) -> Unit)? = null
     // ملک‌یاب visual identity: deep midnight navy, warm ivory and refined antique gold.
     private val navy = Color.rgb(24, 35, 52)
     private val blue = Color.rgb(20, 126, 132)
@@ -142,6 +143,12 @@ class MainActivity : Activity() {
                 for (i in 0 until clip.itemCount) addPhoto(clip.getItemAt(i).uri)
             } else data.data?.let { addPhoto(it) }
             Toast.makeText(this, "تعداد عکس‌ها: " + selectedPhotos.size, Toast.LENGTH_SHORT).show()
+        } else if (requestCode == 202 && resultCode == Activity.RESULT_OK && data != null) {
+            val raw = data.getStringExtra(OnlineAdWebViewActivity.RESULT_KASHANO_ADS).orEmpty()
+            kashanoResultHandler?.invoke(raw)
+            kashanoResultHandler = null
+        } else if (requestCode == 202) {
+            kashanoResultHandler = null
         }
     }
 
@@ -828,11 +835,42 @@ class MainActivity : Activity() {
         val storage = yesNoSpinner("انباری")
         val elevator = yesNoSpinner("آسانسور")
 
-        panel.addViewSafely(text("منابع دریافت کارت آگهی: دیوار و شیپور", 12f, navy, true))
-        panel.addViewSafely(button("باز کردن سایت کاشانو داخل ملک‌یاب", {
+        panel.addViewSafely(text("منابع دریافت کارت آگهی: دیوار، شیپور و کاشانو", 12f, navy, true))
+        kashanoResultHandler = { raw ->
             try {
-                startActivity(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java)
-                    .putExtra(OnlineAdWebViewActivity.EXTRA_URL, "https://kashano.ir/"))
+                val array = org.json.JSONArray(raw)
+                val imported = mutableListOf<DivarOnlineAd>()
+                for (i in 0 until array.length()) {
+                    val item = array.optJSONObject(i) ?: continue
+                    val url = item.optString("url")
+                    if (url.isBlank()) continue
+                    imported.add(DivarOnlineAd(
+                        title = item.optString("title").ifBlank { "آگهی کاشانو" },
+                        summary = item.optString("summary"),
+                        price = item.optString("price"),
+                        imageUrl = item.optString("image"),
+                        url = url,
+                        source = "کاشانو"
+                    ))
+                }
+                latestAds = (latestAds.filter { it.source != "کاشانو" } + imported).distinctBy { it.url }.take(80)
+                sourceCounts.text = sourceCounts.text.toString() + "  ·  کاشانو: " + persianDigits(imported.size.toString()) + " آگهی"
+                resultTitle.text = "مجموع آگهی‌های دریافت‌شده: " + persianDigits(latestAds.size.toString())
+                sourceFilter.setSelection(0)
+                renderFilteredAds()
+                Toast.makeText(this@MainActivity, persianDigits(imported.size.toString()) + " آگهی کاشانو به کارت‌ها اضافه شد", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "پردازش آگهی‌های کاشانو ناموفق بود", Toast.LENGTH_LONG).show()
+                android.util.Log.e("MelkYab", "Kashano import failed", e)
+            }
+        }
+        panel.addViewSafely(button("جست‌وجو و استخراج آگهی‌های کاشانو", {
+            try {
+                kashanoResultHandler = null
+                @Suppress("DEPRECATION")
+                startActivityForResult(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java)
+                    .putExtra(OnlineAdWebViewActivity.EXTRA_URL, "https://kashano.ir/")
+                    .putExtra(OnlineAdWebViewActivity.EXTRA_KASHANO_IMPORT, true), 202)
             } catch (_: Exception) {
                 Toast.makeText(this@MainActivity, "باز کردن کاشانو ممکن نشد", Toast.LENGTH_SHORT).show()
             }
@@ -854,7 +892,7 @@ class MainActivity : Activity() {
         resultSummary.addViewSafely(text("فیلتر نمایش کارت‌ها", 11f, navy, true))
         val sourceFilter = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
-                listOf("همه آگهی‌ها", "فقط دیوار", "فقط شیپور"))
+                listOf("همه آگهی‌ها", "فقط دیوار", "فقط شیپور", "فقط کاشانو"))
         }
         resultSummary.addViewSafely(sourceFilter, LinearLayout.LayoutParams(-1, dp(42)))
         val resultList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -865,6 +903,7 @@ class MainActivity : Activity() {
             val visibleAds = when (sourceFilter.selectedItemPosition) {
                 1 -> latestAds.filter { it.source == "دیوار" }
                 2 -> latestAds.filter { it.source == "شیپور" }
+                3 -> latestAds.filter { it.source == "کاشانو" }
                 else -> latestAds
             }
             if (visibleAds.isEmpty()) {

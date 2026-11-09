@@ -79,16 +79,24 @@ object DivarOnlineSearch {
             if (value != null && value != JSONObject.NULL) formData.put(key, value)
         }
 
-        // Divar's first-page endpoint requires pagination_data. Keep the
-        // payload minimal and use the same shape verified against the public API.
-        formData.put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date")))
+        // Divar expects sorting in server_payload.additional_form_data,
+        // not alongside the category/filters in form_data.data.
+        val searchData = JSONObject()
+            .put("form_data", JSONObject().put("data", formData))
+            .put("server_payload", JSONObject()
+                .put("@type", "type.googleapis.com/widgets.SearchData.ServerPayload")
+                .put("additional_form_data", JSONObject().put("data",
+                    JSONObject().put("sort", JSONObject().put("str",
+                        JSONObject().put("value", "sort_date"))))))
         val body = JSONObject()
             .put("city_ids", org.json.JSONArray().put("1"))
-            .put("search_data", JSONObject()
-                .put("form_data", JSONObject().put("data", formData)))
+            .put("source_view", "SEARCH")
+            .put("disable_recommendation", false)
+            .put("search_data", searchData)
             .put("pagination_data", JSONObject()
                 .put("@type", "type.googleapis.com/post_list.PaginationData")
-                .put("page", 1))
+                .put("page", 1)
+                .put("layer_page", 1))
 
         val connection = (URL("https://api.divar.ir/v8/postlist/w/search").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"

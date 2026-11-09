@@ -786,30 +786,12 @@ class MainActivity : Activity() {
         val storage = yesNoSpinner("انباری")
         val elevator = yesNoSpinner("آسانسور")
 
-        val sourceNames = listOf("همه منابع", "دیوار", "شیپور", "کاشانو", "سایر سایت‌ها")
-        var selectedSource = "همه منابع"
-        val sourceRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val sourceButtons = mutableMapOf<String, Button>()
-        sourceNames.forEach { name ->
-            val b = button(name, {
-                selectedSource = name
-                sourceButtons.forEach { (n, v) ->
-                    v.setTextColor(if (n == selectedSource) Color.WHITE else navy)
-                    v.background = rounded(if (n == selectedSource) blue else Color.WHITE, 10)
-                }
-            }, name == selectedSource)
-            sourceButtons[name] = b
-            sourceRow.addViewSafely(b, LinearLayout.LayoutParams(0, dp(42), 1f).apply {
-                marginStart = dp(2); marginEnd = dp(2)
-            })
-        }
-        panel.addViewSafely(text("منبع جست‌وجو", 12f, navy, true))
-        panel.addViewSafely(sourceRow, LinearLayout.LayoutParams(-1, dp(46)))
+        panel.addViewSafely(text("منبع آگهی: دیوار", 12f, navy, true))
         val searchButton = button("جست‌وجو در اینترنت", {}, true)
         panel.addViewSafely(searchButton, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         page.addViewSafely(panel, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
         page.addViewSafely(text("نتایج جست‌وجو", 16f, navy, true))
-        page.addViewSafely(text("نتایج گوگل داخل خود ملک‌یاب باز می‌شود؛ با انتخاب هر آگهی، صفحه دیوار هم در همین بخش باز خواهد شد.", 11f, muted))
+        page.addViewSafely(text("آگهی‌های عمومی قابل دریافت از دیوار به‌صورت کارت نمایش داده می‌شوند؛ با لمس هر کارت، صفحه آگهی در مرورگر باز می‌شود.", 11f, muted))
         val resultSummary = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), dp(10), dp(10), dp(10))

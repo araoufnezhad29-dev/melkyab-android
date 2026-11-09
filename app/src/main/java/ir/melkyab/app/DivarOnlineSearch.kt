@@ -14,14 +14,54 @@ data class DivarOnlineAd(
 )
 
 object DivarOnlineSearch {
+    @Volatile private var tehranDistrictCache: List<Pair<String, String>> = emptyList()
+
+    fun getTehranDistricts(): List<Pair<String, String>> {
+        if (tehranDistrictCache.isNotEmpty()) return tehranDistrictCache
+        val connection = (URL("https://api.divar.ir/v8/places/cities/1/districts").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 12000
+            readTimeout = 18000
+            setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/125.0 Mobile Safari/537.36")
+            setRequestProperty("Accept", "application/json, text/plain, */*")
+            setRequestProperty("Referer", "https://divar.ir/")
+        }
+        try {
+            if (connection.responseCode !in 200..299) return emptyList()
+            val root = JSONObject(connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
+            val array = root.optJSONArray("districts") ?: root.optJSONArray("data") ?: return emptyList()
+            val items = ArrayList<Pair<String, String>>()
+            for (i in 0 until array.length()) {
+                val item = array.optJSONObject(i) ?: continue
+                val id = item.optString("id")
+                val name = item.optString("name").trim()
+                if (id.isNotBlank() && name.isNotBlank()) items.add(name to id)
+            }
+            tehranDistrictCache = items.distinctBy { it.second }
+            return tehranDistrictCache
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun normalizeDistrict(value: String): String = value.trim()
+        .replace('ي', 'ی').replace('ك', 'ک')
+        .replace("‌", "").replace(" ", "").replace("-", "")
+
+    fun districtId(name: String): String? {
+        if (name.isBlank()) return null
+        val items = getTehranDistricts()
+        val normalized = normalizeDistrict(name)
+        return items.firstOrNull { normalizeDistrict(it.first) == normalized }?.second
+            ?: items.firstOrNull { normalizeDistrict(it.first).contains(normalized) || normalized.contains(normalizeDistrict(it.first)) }?.second
+    }
+
     fun search(categoryPath: String, query: String, filters: JSONObject = JSONObject()): List<DivarOnlineAd> {
         val category = when (categoryPath) {
-            "buy-villa" -> "villa-sell"
-            "rent-villa" -> "villa-rent"
-            "buy-commercial" -> "commercial-sell"
-            "rent-commercial" -> "commercial-rent"
-            "buy-old-house" -> "old-house-sell"
-            "rent-old-house" -> "old-house-rent"
+            "buy-villa", "buy-old-house" -> "buy-residential"
+            "rent-villa", "rent-old-house" -> "residential-rent"
+            "buy-commercial" -> "buy-commercial-property"
+            "rent-commercial" -> "rent-commercial-property"
             "rent-apartment" -> "apartment-rent"
             else -> "apartment-sell"
         }
@@ -65,8 +105,12 @@ object DivarOnlineSearch {
                 val token = action?.optString("token").orEmpty().ifBlank { data.optString("token") }
                 if (token.isBlank() || result.containsKey(token)) continue
                 val title = data.optString("title").ifBlank { "آگهی دیوار" }
-                val summary = data.optString("bottom_description_text")
-                val price = data.optString("middle_description_text")
+                val webInfo = action?.optJSONObject("web_info")
+                val district = webInfo?.optString("district_persian").orEmpty()
+                val bottom = data.optString("bottom_description_text")
+                val summary = listOf(district, bottom).filter { it.isNotBlank() }.distinct().joinToString(" · ")
+                val price = listOf(data.optString("top_description_text"), data.optString("middle_description_text"))
+                    .filter { it.isNotBlank() }.distinct().joinToString(" · ")
                 val image = data.optString("image_url")
                 result[token] = DivarOnlineAd(title, summary, price, image, "https://divar.ir/v/$token", "دیوار")
                 if (result.size >= 30) break

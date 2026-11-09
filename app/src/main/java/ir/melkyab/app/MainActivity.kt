@@ -227,6 +227,9 @@ class MainActivity : Activity() {
     }
 
     private fun rawMoney(value: String): String = asciiDigits(value).filter { it in '0'..'9' }
+    private fun persianDigits(value: String): String = asciiDigits(value).map { ch ->
+        if (ch in '0'..'9') ('۰'.code + ch.code - '0'.code).toChar() else ch
+    }.joinToString("")
 
     private fun moneyField(hint: String, value: String): EditText {
         val e = field(hint, formatMoney(value))
@@ -767,7 +770,7 @@ class MainActivity : Activity() {
                     amount >= 1_000_000_000L -> {
                         val whole = amount / 1_000_000_000L
                         val remainder = amount % 1_000_000_000L
-                        val decimal = if (remainder == 0L) "" else "." + (remainder / 100_000_000L).toString()
+                        val decimal = if (remainder == 0L) "" else "." + persianDigits((remainder / 100_000_000L).toString())
                         formatMoney(whole.toString()) + decimal + " میلیارد"
                     }
                     amount % 1_000_000L == 0L -> formatMoney((amount / 1_000_000L).toString()) + " میلیون"

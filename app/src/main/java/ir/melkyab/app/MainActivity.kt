@@ -736,14 +736,15 @@ class MainActivity : Activity() {
         val minArea = plainField("حداقل متراژ", "مثلاً ۷۰").apply { inputType = InputType.TYPE_CLASS_NUMBER }
         val maxArea = plainField("حداکثر متراژ", "مثلاً ۱۲۰").apply { inputType = InputType.TYPE_CLASS_NUMBER }
 
-        fun attachOnlineAmountSuggestions(target: EditText, fieldName: String) {
+        data class OnlineMoneyRange(val fields: Pair<EditText, EditText>, val container: LinearLayout)
+        fun attachOnlineAmountSuggestions(parent: LinearLayout, target: EditText, fieldName: String) {
             val block = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
             block.addViewSafely(text("مبالغ پیشنهادی $fieldName", 9f, muted, true))
             val horizontal = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
             val suggestions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
             horizontal.addView(suggestions)
             block.addViewSafely(horizontal, LinearLayout.LayoutParams(-1, -2))
-            panel.addViewSafely(block, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
+            parent.addViewSafely(block, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
             target.addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -767,34 +768,28 @@ class MainActivity : Activity() {
                 }
             })
         }
-        fun moneyRange(label: String): Pair<EditText, EditText> {
-            panel.addViewSafely(text("حداقل $label (تومان)", 12f, navy, true))
+        fun moneyRange(label: String): OnlineMoneyRange {
+            val group = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            group.addViewSafely(text("حداقل $label (تومان)", 12f, navy, true))
             val min = moneyField("حداقل مبلغ", "")
-            panel.addViewSafely(min, LinearLayout.LayoutParams(-1, dp(44)))
-            attachOnlineAmountSuggestions(min, "حداقل $label")
-            panel.addViewSafely(text("حداکثر $label (تومان)", 12f, navy, true))
+            group.addViewSafely(min, LinearLayout.LayoutParams(-1, dp(44)))
+            attachOnlineAmountSuggestions(group, min, "حداقل $label")
+            group.addViewSafely(text("حداکثر $label (تومان)", 12f, navy, true))
             val max = moneyField("حداکثر مبلغ", "")
-            panel.addViewSafely(max, LinearLayout.LayoutParams(-1, dp(44)))
-            attachOnlineAmountSuggestions(max, "حداکثر $label")
-            return min to max
+            group.addViewSafely(max, LinearLayout.LayoutParams(-1, dp(44)))
+            attachOnlineAmountSuggestions(group, max, "حداکثر $label")
+            panel.addViewSafely(group, LinearLayout.LayoutParams(-1, -2))
+            return OnlineMoneyRange(min to max, group)
         }
         val saleRange = moneyRange("قیمت فروش")
         val depositRange = moneyRange("مبلغ رهن")
         val rentRange = moneyRange("اجاره ماهانه")
         fun setRangeVisibility() {
             val sale = deal.selectedItemPosition == 0
-            val fullRent = deal.selectedItemPosition == 1
             val mixed = deal.selectedItemPosition == 2
-            // Each pair is preceded by two labels and two amount fields.
-            val saleStart = panel.indexOfChild(saleRange.first) - 1
-            val depositStart = panel.indexOfChild(depositRange.first) - 1
-            val rentStart = panel.indexOfChild(rentRange.first) - 1
-            fun showPair(startIndex: Int, pair: Pair<EditText, EditText>, visible: Boolean) {
-                for (i in startIndex..(startIndex + 3)) panel.getChildAt(i).visibility = if (visible) View.VISIBLE else View.GONE
-            }
-            showPair(saleStart, saleRange, sale)
-            showPair(depositStart, depositRange, !sale)
-            showPair(rentStart, rentRange, mixed)
+            saleRange.container.visibility = if (sale) View.VISIBLE else View.GONE
+            depositRange.container.visibility = if (!sale) View.VISIBLE else View.GONE
+            rentRange.container.visibility = if (mixed) View.VISIBLE else View.GONE
         }
         deal.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
@@ -824,7 +819,7 @@ class MainActivity : Activity() {
         panel.addViewSafely(searchButton, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         page.addViewSafely(panel, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
         page.addViewSafely(text("نتایج جست‌وجو", 16f, navy, true))
-        page.addViewSafely(text("آگهی‌های عمومی قابل دریافت از دیوار به‌صورت کارت نمایش داده می‌شوند؛ با لمس هر کارت، صفحه آگهی در مرورگر باز می‌شود.", 11f, muted))
+        page.addViewSafely(text("آگهی‌های منابع پشتیبانی‌شده به‌صورت کارت نمایش داده می‌شوند؛ با لمس هر کارت، صفحه اصلی آگهی داخل ملک‌یاب باز می‌شود.", 11f, muted))
         val resultSummary = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), dp(10), dp(10), dp(10))
@@ -850,9 +845,9 @@ class MainActivity : Activity() {
                 if (pair.second.text.isNotBlank()) terms.add("حداکثر $label " + pair.second.text)
             }
             when (deal.selectedItemPosition) {
-                0 -> addRange(saleRange, "قیمت")
-                1 -> addRange(depositRange, "رهن")
-                else -> { addRange(depositRange, "رهن"); addRange(rentRange, "اجاره") }
+                0 -> addRange(saleRange.fields, "قیمت")
+                1 -> addRange(depositRange.fields, "رهن")
+                else -> { addRange(depositRange, "رهن"); addRange(rentRange.fields, "اجاره") }
             }
             if (rooms.selectedItemPosition == 1) terms.add("بدون اتاق")
             else if (rooms.selectedItemPosition > 1) terms.add(rooms.selectedItem.toString() + " خوابه")
@@ -866,7 +861,7 @@ class MainActivity : Activity() {
                 else -> if (deal.selectedItemPosition == 0) "buy-apartment" else "rent-apartment"
             }
             val queryText = terms.filter { it.isNotBlank() }.joinToString(" ")
-            resultTitle.text = "در حال دریافت آگهی‌های واقعی دیوار…"
+            resultTitle.text = "در حال جست‌وجوی آگهی‌ها…"
             resultList.removeAllViews()
             searchButton.isEnabled = false
             Thread {

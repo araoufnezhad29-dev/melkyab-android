@@ -1017,8 +1017,10 @@ class MainActivity : Activity() {
                         filtersForSearch.put("districts", org.json.JSONObject().put("repeated_string",
                             org.json.JSONObject().put("value", org.json.JSONArray().put(resolvedDistrictId))))
                     }
+                    // The district is already sent to Divar as a server-side district ID.
+                    // Do not apply a second text-based district filter: list cards may omit
+                    // the district label, which previously discarded every valid Divar result.
                     DivarOnlineSearch.search(categoryPath, queryText, filtersForSearch)
-                        .filter { belongsToSelectedDistrict(it, chosenDistrict) }
                 } catch (e: Exception) {
                     divarError = e.localizedMessage ?: e.javaClass.simpleName
                     android.util.Log.e("MelkYab", "Divar search failed", e)

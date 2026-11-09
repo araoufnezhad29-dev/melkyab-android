@@ -1009,6 +1009,7 @@ class MainActivity : Activity() {
                 }
 
                 val chosenDistrict = chosenDistrictForSearch
+                var divarError: String? = null
                 val divarAds = try {
                     val filtersForSearch = org.json.JSONObject(divarFilters.toString())
                     val resolvedDistrictId = if (chosenDistrict.isBlank()) null else DivarOnlineSearch.districtId(chosenDistrict)
@@ -1018,7 +1019,11 @@ class MainActivity : Activity() {
                     }
                     DivarOnlineSearch.search(categoryPath, queryText, filtersForSearch)
                         .filter { belongsToSelectedDistrict(it, chosenDistrict) }
-                } catch (_: Exception) { emptyList() }
+                } catch (e: Exception) {
+                    divarError = e.localizedMessage ?: e.javaClass.simpleName
+                    android.util.Log.e("MelkYab", "Divar search failed", e)
+                    emptyList()
+                }
 
                 val sheypoorAds = try {
                     SheypoorOnlineSearch.search(queryText)
@@ -1029,8 +1034,13 @@ class MainActivity : Activity() {
                 runOnUiThread {
                     searchButton.isEnabled = true
                     latestAds = ads
-                    sourceCounts.text = "دیوار: " + persianDigits(divarAds.size.toString()) +
-                        " آگهی  ·  شیپور: " + persianDigits(sheypoorAds.size.toString()) + " آگهی"
+                    sourceCounts.text = if (divarError.isNullOrBlank()) {
+                        "دیوار: " + persianDigits(divarAds.size.toString()) +
+                            " آگهی  ·  شیپور: " + persianDigits(sheypoorAds.size.toString()) + " آگهی"
+                    } else {
+                        "دیوار: خطا — " + divarError!!.take(110) +
+                            "  ·  شیپور: " + persianDigits(sheypoorAds.size.toString()) + " آگهی"
+                    }
                     resultTitle.text = if (ads.isEmpty()) "آگهی مطابق فیلترها پیدا نشد"
                         else "مجموع آگهی‌های دریافت‌شده: " + persianDigits(ads.size.toString())
                     renderFilteredAds()

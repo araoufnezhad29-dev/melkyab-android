@@ -212,59 +212,51 @@ class MainActivity : Activity() {
         }
     }.joinToString("")
 
-    // Accept both grouped toman amounts (8.630.000.000) and decimal seeds (1.5).
+    // Money fields are integer toman amounts. Group every three digits while typing.
     private fun formatMoney(raw: String): String {
-        val normalized = asciiDigits(raw).filter { it in '0'..'9' || it == '.' || it == ',' }
-        if (normalized.isBlank()) return ""
-        val separators = normalized.count { it == '.' || it == ',' }
-        val lastPart = normalized.substringAfterLast('.', normalized.substringAfterLast(','))
-        val isGrouped = separators > 1 || (separators == 1 && lastPart.length == 3 &&
-            normalized.substringBeforeLast('.', normalized.substringBeforeLast(',')).length in 1..3)
-        val integerRaw = if (isGrouped) normalized.filter { it.isDigit() }
-            else normalized.substringBeforeLast('.', normalized.substringBeforeLast(',')).filter { it.isDigit() }
-        val decimalRaw = if (isGrouped || separators == 0) "" else lastPart.filter { it.isDigit() }
-        val integer = integerRaw.trimStart('0')
-        if (integer.isEmpty() && decimalRaw.isEmpty()) return ""
-        val grouped = (integer.ifEmpty { "0" }).reversed().chunked(3).joinToString(".").reversed()
-        val result = grouped + if (decimalRaw.isNotEmpty()) ".$decimalRaw" else ""
-        return result.map { if (it in '0'..'9') ('۰'.code + (it.code - '0'.code)).toChar() else it }.joinToString("")
+        val digits = asciiDigits(raw).filter { it in '0'..'9' }
+        if (digits.isEmpty()) return ""
+        val integer = digits.trimStart('0').ifEmpty { "0" }
+        val grouped = integer.reversed().chunked(3).joinToString(".").reversed()
+        return grouped.map { if (it in '0'..'9') ('۰'.code + (it.code - '0'.code)).toChar() else it }.joinToString("")
     }
 
     private fun parseSuggestionSeed(raw: String): Double {
-        val normalized = asciiDigits(raw).trim().replace(',', '.')
-        val pieces = normalized.split('.')
-        val numeric = when {
-            pieces.size > 2 -> pieces.joinToString("").toDoubleOrNull()
-            pieces.size == 2 && pieces[1].length == 3 && pieces[0].length in 1..3 ->
-                pieces.joinToString("").toDoubleOrNull()
-            else -> normalized.toDoubleOrNull()
-        }
-        return numeric ?: 0.0
+        val digits = asciiDigits(raw).filter { it in '0'..'9' }
+        return digits.toDoubleOrNull() ?: 0.0
     }
 
-    private fun rawMoney(value: String): String = value.mapNotNull {
-        when (it) {
-            in '0'..'9' -> it
-            in '۰'..'۹' -> ('0'.code + (it.code - '۰'.code)).toChar()
-            in '٠'..'٩' -> ('0'.code + (it.code - '٠'.code)).toChar()
-            else -> null
-        }
-    }.joinToString("")
+    private fun rawMoney(value: String): String = asciiDigits(value).filter { it in '0'..'9' }
 
     private fun moneyField(hint: String, value: String): EditText {
         val e = field(hint, formatMoney(value))
-        e.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        e.inputType = InputType.TYPE_CLASS_NUMBER
         e.addTextChangedListener(object : TextWatcher {
             private var changing = false
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            private var digitsBeforeCursor = 0
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                val cursor = e.selectionStart.coerceAtLeast(0).coerceAtMost(s?.length ?: 0)
+                digitsBeforeCursor = asciiDigits(s?.subSequence(0, cursor)?.toString() ?: "")
+                    .count { it in '0'..'9' }
+            }
+
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
             override fun afterTextChanged(s: Editable?) {
                 if (changing) return
-                val formatted = formatMoney(s?.toString() ?: "")
-                if (formatted != s.toString()) {
+                val current = s?.toString() ?: ""
+                val formatted = formatMoney(current)
+                if (formatted != current) {
                     changing = true
                     e.setText(formatted)
-                    e.setSelection(formatted.length)
+                    var newCursor = 0
+                    var seenDigits = 0
+                    while (newCursor < formatted.length && seenDigits < digitsBeforeCursor) {
+                        if (formatted[newCursor] in '۰'..'۹') seenDigits++
+                        newCursor++
+                    }
+                    e.setSelection(newCursor.coerceIn(0, formatted.length))
                     changing = false
                 }
             }
@@ -1077,9 +1069,11 @@ class MainActivity : Activity() {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                 override fun afterTextChanged(s: Editable?) {
-                    val typed = parseSuggestionSeed(s?.toString() ?: "")
+                    val rawTyped = s?.toString() ?: ""
+                    val typedDigits = rawMoney(rawTyped)
+                    val typed = parseSuggestionSeed(rawTyped)
                     suggestions.removeAllViews()
-                    if (typed <= 0.0 || typed > 999_999_999_999.0) { block.visibility = View.GONE; return }
+                    if (typedDigits.length !in 1..3 || typed <= 0.0) { block.visibility = View.GONE; return }
                     block.visibility = View.VISIBLE
                     val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
                     scales.forEach { scale ->

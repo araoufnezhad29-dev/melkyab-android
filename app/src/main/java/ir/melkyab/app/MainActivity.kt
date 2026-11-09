@@ -748,8 +748,14 @@ class MainActivity : Activity() {
             scales.forEach { scale ->
                 val amount = if (digit > Long.MAX_VALUE / scale) Long.MAX_VALUE else digit * scale
                 val label = when {
-                    scale >= 1_000_000_000L -> formatMoney((amount / 1_000_000_000L).toString()) + " میلیارد"
-                    else -> formatMoney((amount / 1_000_000L).toString()) + " میلیون"
+                    amount >= 1_000_000_000L -> {
+                        val whole = amount / 1_000_000_000L
+                        val remainder = amount % 1_000_000_000L
+                        val decimal = if (remainder == 0L) "" else "." + (remainder / 100_000_000L).toString()
+                        formatMoney(whole.toString()) + decimal + " میلیارد"
+                    }
+                    amount % 1_000_000L == 0L -> formatMoney((amount / 1_000_000L).toString()) + " میلیون"
+                    else -> formatMoney(amount.toString())
                 }
                 val chip = TextView(this).apply {
                     text = label; textSize = 10f; setTextColor(blue); gravity = Gravity.CENTER

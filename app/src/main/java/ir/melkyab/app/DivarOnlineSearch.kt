@@ -79,19 +79,16 @@ object DivarOnlineSearch {
             if (value != null && value != JSONObject.NULL) formData.put(key, value)
         }
 
-        // First-page web search: keep the request shape aligned with Divar's
-        // currently documented public web endpoint. Pagination cursor is only
-        // sent after the first response, so omit pagination_data here.
+        // Divar's first-page endpoint requires pagination_data. Keep the
+        // payload minimal and use the same shape verified against the public API.
+        formData.put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date")))
         val body = JSONObject()
             .put("city_ids", org.json.JSONArray().put("1"))
-            .put("source_view", "SEARCH")
-            .put("disable_recommendation", false)
             .put("search_data", JSONObject()
-                .put("form_data", JSONObject().put("data", formData))
-                .put("server_payload", JSONObject()
-                    .put("@type", "type.googleapis.com/widgets.SearchData.ServerPayload")
-                    .put("additional_form_data", JSONObject().put("data",
-                        JSONObject().put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date")))))))
+                .put("form_data", JSONObject().put("data", formData)))
+            .put("pagination_data", JSONObject()
+                .put("@type", "type.googleapis.com/post_list.PaginationData")
+                .put("page", 1))
 
         val connection = (URL("https://api.divar.ir/v8/postlist/w/search").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"

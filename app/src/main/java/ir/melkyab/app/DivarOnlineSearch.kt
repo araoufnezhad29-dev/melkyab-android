@@ -84,6 +84,8 @@ object DivarOnlineSearch {
         // sent after the first response, so omit pagination_data here.
         val body = JSONObject()
             .put("city_ids", org.json.JSONArray().put("1"))
+            .put("source_view", "SEARCH")
+            .put("disable_recommendation", false)
             .put("search_data", JSONObject()
                 .put("form_data", JSONObject().put("data", formData))
                 .put("server_payload", JSONObject()

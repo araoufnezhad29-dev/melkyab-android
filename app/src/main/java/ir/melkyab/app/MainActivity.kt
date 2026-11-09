@@ -536,6 +536,30 @@ class MainActivity : Activity() {
             page.addViewSafely(row)
         }
 
+        val onlineCard = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+                intArrayOf(Color.rgb(20,126,132), Color.rgb(13,73,91))).apply {
+                cornerRadius = dp(20).toFloat()
+                setStroke(dp(1), Color.rgb(205,166,91))
+            }
+            elevation = dp(4).toFloat()
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { activeSection = "جست‌وجوی آنلاین"; renderOnlineSearch() }
+        }
+        onlineCard.addViewSafely(text("⌕", 28f, Color.WHITE, true), LinearLayout.LayoutParams(dp(42), dp(48)))
+        val onlineTexts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        onlineTexts.addViewSafely(text("جست‌وجوی آنلاین ملک", 16f, Color.WHITE, true))
+        onlineTexts.addViewSafely(text("جست‌وجو در دیوار، شیپور و سایت‌های ملکی", 11f, Color.rgb(224,239,239)))
+        onlineCard.addViewSafely(onlineTexts, LinearLayout.LayoutParams(0, -2, 1f))
+        onlineCard.addViewSafely(text("‹", 25f, Color.WHITE, true))
+        page.addViewSafely(onlineCard, LinearLayout.LayoutParams(-1, dp(70)).apply {
+            topMargin = dp(8); bottomMargin = dp(12)
+        })
+
         scroll.addViewSafely(page)
         root.addViewSafely(scroll, LinearLayout.LayoutParams(-1,0,1f))
         val credit = LinearLayout(this).apply {
@@ -633,6 +657,117 @@ class MainActivity : Activity() {
             override fun afterTextChanged(s: Editable?) {}
         })
         refreshList()
+    }
+
+    private fun renderOnlineSearch() {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(10), dp(12), dp(8))
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                intArrayOf(Color.rgb(239,245,250), Color.rgb(229,239,244)))
+        }
+        val toolbar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(8), dp(7), dp(8), dp(7))
+            background = rounded(navy, 17, gold)
+        }
+        toolbar.addViewSafely(button("‹ بازگشت", { activeSection = null; render() }),
+            LinearLayout.LayoutParams(-2, dp(42)))
+        toolbar.addViewSafely(text("جست‌وجوی آنلاین ملک", 18f, Color.WHITE, true),
+            LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(10) })
+        root.addViewSafely(toolbar, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+        val scroll = ScrollView(this).apply { isFillViewport = true }
+        val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            background = rounded(Color.WHITE, 20, Color.rgb(196,218,213))
+        }
+        panel.addViewSafely(text("مشخصات ملک موردنظر", 16f, navy, true))
+        fun edit(label: String, hint: String): EditText {
+            panel.addViewSafely(text(label, 12f, navy, true))
+            return field(hint).also { panel.addViewSafely(it, LinearLayout.LayoutParams(-1, dp(44))) }
+        }
+        val city = edit("شهر", "مثلاً تهران")
+        val district = edit("منطقه یا محله", "مثلاً اکباتان، بیمه")
+        val kind = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                listOf("آپارتمان", "خانه و ویلایی", "زمین و کلنگی", "اداری و تجاری"))
+        }
+        panel.addViewSafely(text("نوع ملک", 12f, navy, true))
+        panel.addViewSafely(kind, LinearLayout.LayoutParams(-1, dp(44)))
+        val deal = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                listOf("خرید و فروش", "رهن و اجاره", "رهن کامل"))
+        }
+        panel.addViewSafely(text("نوع معامله", 12f, navy, true))
+        panel.addViewSafely(deal, LinearLayout.LayoutParams(-1, dp(44)))
+        val minArea = edit("حداقل متراژ", "مثلاً ۷۰")
+        val maxArea = edit("حداکثر متراژ", "مثلاً ۱۲۰")
+        val minPrice = edit("حداقل قیمت یا رهن (تومان)", "مثلاً ۳۰۰۰۰۰۰۰۰۰")
+        val maxPrice = edit("حداکثر قیمت یا رهن (تومان)", "مثلاً ۶۰۰۰۰۰۰۰۰۰")
+        val rooms = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                listOf("مهم نیست", "بدون اتاق", "۱", "۲", "۳", "۴ یا بیشتر"))
+        }
+        panel.addViewSafely(text("تعداد اتاق", 12f, navy, true))
+        panel.addViewSafely(rooms, LinearLayout.LayoutParams(-1, dp(44)))
+        val sourceNames = listOf("همه منابع", "دیوار", "شیپور", "کاشانو", "کاشانه")
+        var selectedSource = "همه منابع"
+        val sourceRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val sourceButtons = mutableMapOf<String, Button>()
+        sourceNames.forEach { name ->
+            val b = button(name, {
+                selectedSource = name
+                sourceButtons.forEach { (n, v) ->
+                    v.setTextColor(if (n == selectedSource) Color.WHITE else navy)
+                    v.background = rounded(if (n == selectedSource) blue else Color.WHITE, 10)
+                }
+            }, name == selectedSource)
+            sourceButtons[name] = b
+            sourceRow.addViewSafely(b, LinearLayout.LayoutParams(0, dp(42), 1f).apply {
+                marginStart = dp(2); marginEnd = dp(2)
+            })
+        }
+        panel.addViewSafely(text("منبع جست‌وجو", 12f, navy, true))
+        panel.addViewSafely(sourceRow, LinearLayout.LayoutParams(-1, dp(46)))
+        val searchButton = button("جست‌وجو در اینترنت", {}, true)
+        panel.addViewSafely(searchButton, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
+        page.addViewSafely(panel, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
+        page.addViewSafely(text("نتایج جست‌وجوی اینترنتی", 16f, navy, true))
+        page.addViewSafely(text("نتایج از طریق موتور جست‌وجو نمایش داده می‌شوند؛ کامل‌بودن آن‌ها به ایندکس‌شدن آگهی‌ها و دسترسی هر سایت بستگی دارد.", 11f, muted))
+        val web = android.webkit.WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            webViewClient = android.webkit.WebViewClient()
+            setBackgroundColor(Color.WHITE)
+        }
+        page.addViewSafely(web, LinearLayout.LayoutParams(-1, dp(520)).apply { topMargin = dp(8) })
+        searchButton.setOnClickListener {
+            val terms = listOf(
+                if (deal.selectedItemPosition == 0) "خرید فروش" else if (deal.selectedItemPosition == 1) "رهن اجاره" else "رهن کامل",
+                kind.selectedItem.toString(), city.text.toString(), district.text.toString(),
+                if (minArea.text.isNotBlank()) "حداقل متراژ " + minArea.text else "",
+                if (maxArea.text.isNotBlank()) "حداکثر متراژ " + maxArea.text else "",
+                if (minPrice.text.isNotBlank()) "حداقل قیمت " + minPrice.text else "",
+                if (maxPrice.text.isNotBlank()) "حداکثر قیمت " + maxPrice.text else "",
+                if (rooms.selectedItemPosition > 1) rooms.selectedItem.toString() + " خوابه" else ""
+            ).filter { it.isNotBlank() }.joinToString(" ")
+            val sites = when (selectedSource) {
+                "دیوار" -> "site:divar.ir/v"
+                "شیپور" -> "site:sheypoor.com"
+                "کاشانو" -> "site:kashano.ir"
+                "کاشانه" -> "site:kashane.com"
+                else -> "(site:divar.ir/v OR site:sheypoor.com OR site:kashano.ir OR site:kashane.com)"
+            }
+            web.loadUrl("https://www.google.com/search?q=" + Uri.encode("$sites $terms آگهی ملک"))
+            (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                .hideSoftInputFromWindow(searchButton.windowToken, 0)
+        }
+        scroll.addViewSafely(page)
+        root.addViewSafely(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        setContentView(root)
     }
 
     private var currentGalleryPhotos: List<String> = emptyList()

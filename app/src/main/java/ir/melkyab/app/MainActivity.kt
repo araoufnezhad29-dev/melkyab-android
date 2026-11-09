@@ -115,13 +115,13 @@ class MainActivity : Activity() {
     private var searchSubmitted = false
     private var systemBackCallback: OnBackInvokedCallback? = null
     // ملک‌یاب visual identity: deep midnight navy, warm ivory and refined antique gold.
-    private val navy = Color.rgb(28, 43, 57)
-    private val blue = Color.rgb(36, 119, 124)
-    private val pale = Color.rgb(239, 243, 240)
-    private val muted = Color.rgb(105, 119, 121)
-    private val gold = Color.rgb(205, 126, 83)
-    private val ink = Color.rgb(34, 54, 61)
-    private val softGold = Color.rgb(232, 243, 239)
+    private val navy = Color.rgb(24, 35, 52)
+    private val blue = Color.rgb(20, 126, 132)
+    private val pale = Color.rgb(239, 244, 247)
+    private val muted = Color.rgb(105, 117, 132)
+    private val gold = Color.rgb(224, 139, 76)
+    private val ink = Color.rgb(31, 43, 59)
+    private val softGold = Color.rgb(231, 242, 243)
 
     private fun choosePhotos() {
         val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -185,7 +185,7 @@ class MainActivity : Activity() {
         this.hint = hint; setText(value); textSize = 15f
         setSingleLine(hint != "توضیحات")
         setPadding(dp(12), dp(10), dp(12), dp(10))
-        background = rounded(Color.WHITE, 15, Color.rgb(220, 204, 169))
+        background = rounded(Color.rgb(250, 252, 255), 17, Color.rgb(211, 222, 232))
         setTextColor(ink)
         setHintTextColor(Color.rgb(153, 151, 143))
         elevation = dp(1).toFloat()
@@ -195,27 +195,51 @@ class MainActivity : Activity() {
         text = label; textSize = 13f; isAllCaps = false
         setTextColor(if (primary) Color.WHITE else navy)
         background = if (primary) GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-            intArrayOf(Color.rgb(178,139,72), Color.rgb(137,99,43))).apply {
+            intArrayOf(Color.rgb(24,126,132), Color.rgb(16,91,105))).apply {
                 cornerRadius = dp(14).toFloat()
-                setStroke(dp(1), Color.rgb(208,177,119))
-            } else rounded(Color.WHITE, 14, Color.rgb(220,204,169))
+                setStroke(dp(1), Color.rgb(116,181,181))
+            } else rounded(Color.rgb(250,252,255), 15, Color.rgb(211,222,232))
         elevation = dp(if (primary) 3 else 1).toFloat()
         setPadding(dp(8), 0, dp(8), 0)
         setOnClickListener { action() }
     }
 
+    private fun asciiDigits(value: String): String = value.map {
+        when (it) {
+            in '۰'..'۹' -> ('0'.code + it.code - '۰'.code).toChar()
+            in '٠'..'٩' -> ('0'.code + it.code - '٠'.code).toChar()
+            else -> it
+        }
+    }.joinToString("")
+
+    // Accept both grouped toman amounts (8.630.000.000) and decimal seeds (1.5).
     private fun formatMoney(raw: String): String {
-        val ascii = raw.mapNotNull {
-            when (it) {
-                in '0'..'9' -> it
-                in '۰'..'۹' -> ('0'.code + (it.code - '۰'.code)).toChar()
-                in '٠'..'٩' -> ('0'.code + (it.code - '٠'.code)).toChar()
-                else -> null
-            }
-        }.joinToString("").trimStart('0')
-        if (ascii.isEmpty()) return ""
-        val grouped = ascii.reversed().chunked(3).joinToString(".").reversed()
-        return grouped.map { if (it in '0'..'9') ('۰'.code + (it.code - '0'.code)).toChar() else it }.joinToString("")
+        val normalized = asciiDigits(raw).filter { it in '0'..'9' || it == '.' || it == ',' }
+        if (normalized.isBlank()) return ""
+        val separators = normalized.count { it == '.' || it == ',' }
+        val lastPart = normalized.substringAfterLast('.', normalized.substringAfterLast(','))
+        val isGrouped = separators > 1 || (separators == 1 && lastPart.length == 3 &&
+            normalized.substringBeforeLast('.', normalized.substringBeforeLast(',')).length in 1..3)
+        val integerRaw = if (isGrouped) normalized.filter { it.isDigit() }
+            else normalized.substringBeforeLast('.', normalized.substringBeforeLast(',')).filter { it.isDigit() }
+        val decimalRaw = if (isGrouped || separators == 0) "" else lastPart.filter { it.isDigit() }
+        val integer = integerRaw.trimStart('0')
+        if (integer.isEmpty() && decimalRaw.isEmpty()) return ""
+        val grouped = (integer.ifEmpty { "0" }).reversed().chunked(3).joinToString(".").reversed()
+        val result = grouped + if (decimalRaw.isNotEmpty()) ".$decimalRaw" else ""
+        return result.map { if (it in '0'..'9') ('۰'.code + (it.code - '0'.code)).toChar() else it }.joinToString("")
+    }
+
+    private fun parseSuggestionSeed(raw: String): Double {
+        val normalized = asciiDigits(raw).trim().replace(',', '.')
+        val pieces = normalized.split('.')
+        val numeric = when {
+            pieces.size > 2 -> pieces.joinToString("").toDoubleOrNull()
+            pieces.size == 2 && pieces[1].length == 3 && pieces[0].length in 1..3 ->
+                pieces.joinToString("").toDoubleOrNull()
+            else -> normalized.toDoubleOrNull()
+        }
+        return numeric ?: 0.0
     }
 
     private fun rawMoney(value: String): String = value.mapNotNull {
@@ -229,7 +253,7 @@ class MainActivity : Activity() {
 
     private fun moneyField(hint: String, value: String): EditText {
         val e = field(hint, formatMoney(value))
-        e.inputType = InputType.TYPE_CLASS_NUMBER
+        e.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
         e.addTextChangedListener(object : TextWatcher {
             private var changing = false
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -335,7 +359,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10),dp(7),dp(10),0)
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(239,246,244), Color.rgb(225,237,235), Color.rgb(248,245,239)))
+                intArrayOf(Color.rgb(239,245,250), Color.rgb(229,239,244), Color.rgb(246,248,251)))
         }
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -1053,13 +1077,13 @@ class MainActivity : Activity() {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                 override fun afterTextChanged(s: Editable?) {
-                    val typed = rawMoney(s?.toString() ?: "").toLongOrNull() ?: 0L
+                    val typed = parseSuggestionSeed(s?.toString() ?: "")
                     suggestions.removeAllViews()
-                    if (typed <= 0L) { block.visibility = View.GONE; return }
+                    if (typed <= 0.0 || typed > 999_999_999_999.0) { block.visibility = View.GONE; return }
                     block.visibility = View.VISIBLE
                     val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
                     scales.forEach { scale ->
-                        val amount = if (typed > Long.MAX_VALUE / scale) Long.MAX_VALUE else typed * scale
+                        val amount = (typed * scale.toDouble()).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
                         val label = when {
                             amount >= 1_000_000_000L -> {
                                 val billions = amount / 1_000_000_000L

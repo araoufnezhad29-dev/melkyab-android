@@ -88,15 +88,13 @@ object DivarOnlineSearch {
                 .put("additional_form_data", JSONObject().put("data",
                     JSONObject().put("sort", JSONObject().put("str",
                         JSONObject().put("value", "sort_date"))))))
+        // The first-page request must omit pagination_data entirely.
+        // Divar only returns pagination_data for subsequent cursor requests.
         val body = JSONObject()
             .put("city_ids", org.json.JSONArray().put("1"))
             .put("source_view", "SEARCH")
             .put("disable_recommendation", false)
             .put("search_data", searchData)
-            .put("pagination_data", JSONObject()
-                .put("@type", "type.googleapis.com/post_list.PaginationData")
-                .put("page", 1)
-                .put("layer_page", 1))
 
         val connection = (URL("https://api.divar.ir/v8/postlist/w/search").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
@@ -133,6 +131,11 @@ object DivarOnlineSearch {
                         (0 until json.length()).joinToString(",") { json.names()?.optString(it).orEmpty() } +
                         "؛ پاسخ: " + json.toString().take(260)
                 )
+            if (widgets.length() == 0) {
+                throw IllegalStateException("دیوار پاسخ خالی فرستاد؛ کلیدهای پاسخ: " +
+                    (0 until json.length()).joinToString(",") { json.names()?.optString(it).orEmpty() } +
+                    "؛ پاسخ: " + json.toString().take(240))
+            }
             val result = LinkedHashMap<String, DivarOnlineAd>()
             val widgetTypes = ArrayList<String>()
             for (i in 0 until widgets.length()) {

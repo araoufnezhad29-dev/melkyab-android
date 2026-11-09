@@ -107,7 +107,7 @@ object DivarOnlineSearch {
                 val token = action?.optString("token").orEmpty().ifBlank { data.optString("token") }
                 if (token.isBlank() || result.containsKey(token)) continue
                 val title = data.optString("title").ifBlank { "آگهی دیوار" }
-                val webInfo = data.optJSONObject("web_info")
+                val webInfo = action?.optJSONObject("web_info")
                 val district = webInfo?.optString("district_persian").orEmpty()
                 val bottom = data.optString("bottom_description_text")
                 val summary = listOf(district, bottom).filter { it.isNotBlank() }.distinct().joinToString(" · ")

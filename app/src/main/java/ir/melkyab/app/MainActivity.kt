@@ -808,30 +808,18 @@ class MainActivity : Activity() {
         val searchButton = button("جست‌وجو در اینترنت", {}, true)
         panel.addViewSafely(searchButton, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         page.addViewSafely(panel, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
-        page.addViewSafely(text("نتایج جست‌وجوی اینترنتی", 16f, navy, true))
-        page.addViewSafely(text("نتایج از طریق موتور جست‌وجو نمایش داده می‌شوند؛ کامل‌بودن آن‌ها به ایندکس‌شدن آگهی‌ها و دسترسی هر سایت بستگی دارد.", 11f, muted))
-        val web = android.webkit.WebView(this).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.loadsImagesAutomatically = true
-            settings.javaScriptCanOpenWindowsAutomatically = true
-            settings.setSupportMultipleWindows(false)
-            isVerticalScrollBarEnabled = true
-            isHorizontalScrollBarEnabled = false
-            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
-            webViewClient = android.webkit.WebViewClient()
-            setBackgroundColor(Color.WHITE)
-            setOnTouchListener { v, event ->
-                when (event.action) {
-                    android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_MOVE ->
-                        v.parent?.requestDisallowInterceptTouchEvent(true)
-                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
-                        v.parent?.requestDisallowInterceptTouchEvent(false)
-                }
-                false
-            }
+        page.addViewSafely(text("نتایج جست‌وجو", 16f, navy, true))
+        page.addViewSafely(text("نتایج به‌صورت کارت‌های اختصاصی داخل ملک‌یاب نمایش داده می‌شوند؛ بدون بازشدن گوگل یا مرورگر.", 11f, muted))
+        val resultSummary = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(14), dp(14), dp(14), dp(14))
+            background = rounded(Color.WHITE, 18, Color.rgb(211,222,232))
         }
-        page.addViewSafely(web, LinearLayout.LayoutParams(-1, dp(560)).apply { topMargin = dp(8) })
+        val resultTitle = text("هنوز جست‌وجویی انجام نشده", 15f, navy, true)
+        val resultMessage = text("فیلترها را انتخاب کن و دکمه جست‌وجو را بزن.", 12f, muted)
+        resultSummary.addViewSafely(resultTitle, LinearLayout.LayoutParams(-1, -2))
+        resultSummary.addViewSafely(resultMessage, LinearLayout.LayoutParams(-1, -2))
+        page.addViewSafely(resultSummary, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
         searchButton.setOnClickListener {
             val dealText = deal.selectedItem.toString()
             val terms = mutableListOf("تهران", district.text.toString(), kind.selectedItem.toString())
@@ -863,7 +851,9 @@ class MainActivity : Activity() {
                 "سایر سایت‌ها" -> "(site:zoomila.com OR site:kilid.com OR site:ganje.ir OR site:melk20.com)"
                 else -> "(site:divar.ir OR site:sheypoor.com OR site:kashano.ir OR site:zoomila.com OR site:kilid.com OR site:ganje.ir)"
             }
-            web.loadUrl("https://www.google.com/search?q=" + Uri.encode("$sites ${terms.filter { it.isNotBlank() }.joinToString(" ")} آگهی ملک"))
+            val queryText = "$sites ${terms.filter { it.isNotBlank() }.joinToString(" ")} آگهی ملک"
+            resultTitle.text = "فیلترهای جست‌وجو ثبت شد"
+            resultMessage.text = "تهران · ${district.text.ifBlank { "همه محله‌ها" }} · ${deal.selectedItem} · ${kind.selectedItem}\nمنبع انتخابی: $selectedSource\n\nبرای دریافت و نمایش آگهی‌های واقعی در این کارت‌ها، باید سرویس جست‌وجوی دارای دسترسی مجاز متصل شود. در حال حاضر API رسمی/کلید جست‌وجو در پروژه تعریف نشده؛ بنابراین هیچ آگهی ساختگی نمایش داده نمی‌شود.\n\nعبارت جست‌وجوی آماده: $queryText"
             (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
                 .hideSoftInputFromWindow(searchButton.windowToken, 0)
         }

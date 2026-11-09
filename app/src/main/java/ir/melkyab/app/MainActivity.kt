@@ -685,12 +685,37 @@ class MainActivity : Activity() {
             background = rounded(Color.WHITE, 20, Color.rgb(196,218,213))
         }
         panel.addViewSafely(text("مشخصات ملک موردنظر", 16f, navy, true))
-        fun edit(label: String, hint: String): EditText {
-            panel.addViewSafely(text(label, 12f, navy, true))
-            return field(hint).also { panel.addViewSafely(it, LinearLayout.LayoutParams(-1, dp(44))) }
+        panel.addViewSafely(text("شهر جست‌وجو", 12f, navy, true))
+        panel.addViewSafely(field("تهران", "تهران").apply {
+            isEnabled = false
+            setTextColor(navy)
+            background = rounded(Color.rgb(239,244,247), 12)
+        }, LinearLayout.LayoutParams(-1, dp(44)))
+        val districtLabel = text("منطقه یا محله تهران", 12f, navy, true)
+        panel.addViewSafely(districtLabel)
+        val district = android.widget.AutoCompleteTextView(this).apply {
+            hint = "نام محله را تایپ کنید؛ مثلاً سعادت‌آباد"
+            setSingleLine(true)
+            threshold = 1
+            textSize = 15f
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            background = rounded(Color.rgb(250,252,255), 17, Color.rgb(211,222,232))
+            setTextColor(ink)
+            setHintTextColor(Color.rgb(153,151,143))
         }
-        val city = edit("شهر", "مثلاً تهران")
-        val district = edit("منطقه یا محله", "مثلاً اکباتان، بیمه")
+        val tehranAreas = listOf(
+            "اکباتان","بیمه","آزادی","تهرانسر","صادقیه","فردوس","جنت‌آباد شمالی","جنت‌آباد مرکزی","جنت‌آباد جنوبی",
+            "پونک","مرزداران","شهرک غرب","سعادت‌آباد","گیشا","ستارخان","طرشت","آریاشهر","شهرآرا",
+            "یوسف‌آباد","امیرآباد","فاطمی","ونک","گاندی","جردن","میرداماد","ظفر","داوودیه","قلهک",
+            "دروس","پاسداران","هروی","اختیاریه","فرمانیه","نیاوران","تجریش","زعفرانیه","ولنجک","الهیه",
+            "قیطریه","کامرانیه","اقدسیه","دارآباد","شمس‌آباد","مجیدیه","نارمک","تهرانپارس","حکیمیه",
+            "پیروزی","نیروی هوایی","نظام‌آباد","هفت‌حوض","سیدخندان","رسالت","مجیدیه شمالی","عباس‌آباد",
+            "بهارستان","هفت تیر","مطهری","سهروردی","قصر","نواب","جمهوری","منیریه","راه‌آهن","نازی‌آباد",
+            "یافت‌آباد","شهرری","فلاح","جوادیه","خانی‌آباد","آذری","زمزم","شهرک ولیعصر"
+        )
+        district.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, tehranAreas))
+        district.setOnFocusChangeListener { _, hasFocus -> if (hasFocus && district.text.isEmpty()) district.showDropDown() }
+        panel.addViewSafely(district, LinearLayout.LayoutParams(-1, dp(46)))
         val kind = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
                 listOf("آپارتمان", "خانه و ویلایی", "زمین و کلنگی", "اداری و تجاری"))
@@ -699,20 +724,68 @@ class MainActivity : Activity() {
         panel.addViewSafely(kind, LinearLayout.LayoutParams(-1, dp(44)))
         val deal = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
-                listOf("خرید و فروش", "رهن و اجاره", "رهن کامل"))
+                listOf("فروش", "رهن", "رهن و اجاره"))
         }
         panel.addViewSafely(text("نوع معامله", 12f, navy, true))
         panel.addViewSafely(deal, LinearLayout.LayoutParams(-1, dp(44)))
-        val minArea = edit("حداقل متراژ", "مثلاً ۷۰")
-        val maxArea = edit("حداکثر متراژ", "مثلاً ۱۲۰")
-        val minPrice = edit("حداقل قیمت یا رهن (تومان)", "مثلاً ۳۰۰۰۰۰۰۰۰۰")
-        val maxPrice = edit("حداکثر قیمت یا رهن (تومان)", "مثلاً ۶۰۰۰۰۰۰۰۰۰")
+
+        fun plainField(label: String, hint: String): EditText {
+            panel.addViewSafely(text(label, 12f, navy, true))
+            return field(hint).also { panel.addViewSafely(it, LinearLayout.LayoutParams(-1, dp(44))) }
+        }
+        val minArea = plainField("حداقل متراژ", "مثلاً ۷۰").apply { inputType = InputType.TYPE_CLASS_NUMBER }
+        val maxArea = plainField("حداکثر متراژ", "مثلاً ۱۲۰").apply { inputType = InputType.TYPE_CLASS_NUMBER }
+
+        fun moneyRange(label: String): Pair<EditText, EditText> {
+            panel.addViewSafely(text("حداقل $label (تومان)", 12f, navy, true))
+            val min = moneyField("حداقل مبلغ", "")
+            panel.addViewSafely(min, LinearLayout.LayoutParams(-1, dp(44)))
+            panel.addViewSafely(text("حداکثر $label (تومان)", 12f, navy, true))
+            val max = moneyField("حداکثر مبلغ", "")
+            panel.addViewSafely(max, LinearLayout.LayoutParams(-1, dp(44)))
+            return min to max
+        }
+        val saleRange = moneyRange("قیمت فروش")
+        val depositRange = moneyRange("مبلغ رهن")
+        val rentRange = moneyRange("اجاره ماهانه")
+        fun setRangeVisibility() {
+            val sale = deal.selectedItemPosition == 0
+            val fullRent = deal.selectedItemPosition == 1
+            val mixed = deal.selectedItemPosition == 2
+            // Each pair is preceded by two labels and two amount fields.
+            val saleStart = panel.indexOfChild(saleRange.first) - 1
+            val depositStart = panel.indexOfChild(depositRange.first) - 1
+            val rentStart = panel.indexOfChild(rentRange.first) - 1
+            fun showPair(startIndex: Int, pair: Pair<EditText, EditText>, visible: Boolean) {
+                for (i in startIndex..(startIndex + 3)) panel.getChildAt(i).visibility = if (visible) View.VISIBLE else View.GONE
+            }
+            showPair(saleStart, saleRange, sale)
+            showPair(depositStart, depositRange, !sale)
+            showPair(rentStart, rentRange, mixed)
+        }
+        deal.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { setRangeVisibility() }
+        }
+        setRangeVisibility()
+
         val rooms = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
                 listOf("مهم نیست", "بدون اتاق", "۱", "۲", "۳", "۴ یا بیشتر"))
         }
         panel.addViewSafely(text("تعداد اتاق", 12f, navy, true))
         panel.addViewSafely(rooms, LinearLayout.LayoutParams(-1, dp(44)))
+        fun yesNoSpinner(label: String): Spinner {
+            panel.addViewSafely(text(label, 12f, navy, true))
+            return Spinner(this).apply {
+                adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                    listOf("مهم نیست", "دارد", "ندارد"))
+            }.also { panel.addViewSafely(it, LinearLayout.LayoutParams(-1, dp(42))) }
+        }
+        val parking = yesNoSpinner("پارکینگ")
+        val storage = yesNoSpinner("انباری")
+        val elevator = yesNoSpinner("آسانسور")
+
         val sourceNames = listOf("همه منابع", "دیوار", "شیپور", "کاشانو", "سایر سایت‌ها")
         var selectedSource = "همه منابع"
         val sourceRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -740,20 +813,49 @@ class MainActivity : Activity() {
         val web = android.webkit.WebView(this).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
+            settings.loadsImagesAutomatically = true
+            settings.javaScriptCanOpenWindowsAutomatically = true
+            settings.setSupportMultipleWindows(false)
+            isVerticalScrollBarEnabled = true
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
             webViewClient = android.webkit.WebViewClient()
             setBackgroundColor(Color.WHITE)
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_MOVE ->
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
+                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                }
+                false
+            }
         }
-        page.addViewSafely(web, LinearLayout.LayoutParams(-1, dp(520)).apply { topMargin = dp(8) })
+        page.addViewSafely(web, LinearLayout.LayoutParams(-1, dp(560)).apply { topMargin = dp(8) })
         searchButton.setOnClickListener {
-            val terms = listOf(
-                if (deal.selectedItemPosition == 0) "خرید فروش" else if (deal.selectedItemPosition == 1) "رهن اجاره" else "رهن کامل",
-                kind.selectedItem.toString(), city.text.toString(), district.text.toString(),
-                if (minArea.text.isNotBlank()) "حداقل متراژ " + minArea.text else "",
-                if (maxArea.text.isNotBlank()) "حداکثر متراژ " + maxArea.text else "",
-                if (minPrice.text.isNotBlank()) "حداقل قیمت " + minPrice.text else "",
-                if (maxPrice.text.isNotBlank()) "حداکثر قیمت " + maxPrice.text else "",
-                if (rooms.selectedItemPosition > 1) rooms.selectedItem.toString() + " خوابه" else ""
-            ).filter { it.isNotBlank() }.joinToString(" ")
+            val dealText = deal.selectedItem.toString()
+            val terms = mutableListOf("تهران", district.text.toString(), kind.selectedItem.toString())
+            terms.add(when (dealText) {
+                "فروش" -> "فروش خرید"
+                "رهن" -> "رهن کامل"
+                else -> "رهن و اجاره"
+            })
+            if (minArea.text.isNotBlank()) terms.add("حداقل متراژ " + minArea.text)
+            if (maxArea.text.isNotBlank()) terms.add("حداکثر متراژ " + maxArea.text)
+            fun addRange(pair: Pair<EditText, EditText>, label: String) {
+                if (pair.first.text.isNotBlank()) terms.add("حداقل $label " + pair.first.text)
+                if (pair.second.text.isNotBlank()) terms.add("حداکثر $label " + pair.second.text)
+            }
+            when (deal.selectedItemPosition) {
+                0 -> addRange(saleRange, "قیمت")
+                1 -> addRange(depositRange, "رهن")
+                else -> { addRange(depositRange, "رهن"); addRange(rentRange, "اجاره") }
+            }
+            if (rooms.selectedItemPosition == 1) terms.add("بدون اتاق")
+            else if (rooms.selectedItemPosition > 1) terms.add(rooms.selectedItem.toString() + " خوابه")
+            if (parking.selectedItemPosition != 0) terms.add("پارکینگ " + parking.selectedItem)
+            if (storage.selectedItemPosition != 0) terms.add("انباری " + storage.selectedItem)
+            if (elevator.selectedItemPosition != 0) terms.add("آسانسور " + elevator.selectedItem)
             val sites = when (selectedSource) {
                 "دیوار" -> "site:divar.ir/v"
                 "شیپور" -> "site:sheypoor.com"
@@ -761,7 +863,7 @@ class MainActivity : Activity() {
                 "سایر سایت‌ها" -> "(site:zoomila.com OR site:kilid.com OR site:ganje.ir OR site:melk20.com)"
                 else -> "(site:divar.ir OR site:sheypoor.com OR site:kashano.ir OR site:zoomila.com OR site:kilid.com OR site:ganje.ir)"
             }
-            web.loadUrl("https://www.google.com/search?q=" + Uri.encode("$sites $terms آگهی ملک"))
+            web.loadUrl("https://www.google.com/search?q=" + Uri.encode("$sites ${terms.filter { it.isNotBlank() }.joinToString(" ")} آگهی ملک"))
             (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
                 .hideSoftInputFromWindow(searchButton.windowToken, 0)
         }

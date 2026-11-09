@@ -861,12 +861,39 @@ class MainActivity : Activity() {
                 else -> if (deal.selectedItemPosition == 0) "buy-apartment" else "rent-apartment"
             }
             val queryText = terms.filter { it.isNotBlank() }.joinToString(" ")
+            val divarFilters = org.json.JSONObject()
+            fun addDivarRange(key: String, minimum: EditText, maximum: EditText) {
+                val minValue = rawMoney(minimum.text.toString())
+                val maxValue = rawMoney(maximum.text.toString())
+                if (minValue.isNotBlank() || maxValue.isNotBlank()) {
+                    val range = org.json.JSONObject()
+                    if (minValue.isNotBlank()) range.put("minimum", minValue)
+                    if (maxValue.isNotBlank()) range.put("maximum", maxValue)
+                    divarFilters.put(key, org.json.JSONObject().put("number_range", range))
+                }
+            }
+            addDivarRange("size", minArea, maxArea)
+            if (deal.selectedItemPosition == 0) addDivarRange("price", saleRange.fields.first, saleRange.fields.second)
+            if (rooms.selectedItemPosition > 1) {
+                val roomValues = org.json.JSONArray()
+                val selectedRooms = when (rooms.selectedItemPosition) {
+                    2 -> listOf("یک")
+                    3 -> listOf("دو")
+                    4 -> listOf("سه")
+                    else -> listOf("چهار", "پنج")
+                }
+                selectedRooms.forEach { roomValues.put(it) }
+                divarFilters.put("rooms", org.json.JSONObject().put("repeated_string", org.json.JSONObject().put("value", roomValues)))
+            }
+            if (parking.selectedItemPosition != 0) divarFilters.put("parking", org.json.JSONObject().put("boolean", org.json.JSONObject().put("value", parking.selectedItemPosition == 1)))
+            if (storage.selectedItemPosition != 0) divarFilters.put("warehouse", org.json.JSONObject().put("boolean", org.json.JSONObject().put("value", storage.selectedItemPosition == 1)))
+            if (elevator.selectedItemPosition != 0) divarFilters.put("elevator", org.json.JSONObject().put("boolean", org.json.JSONObject().put("value", elevator.selectedItemPosition == 1)))
             resultTitle.text = "در حال جست‌وجوی آگهی‌ها…"
             resultList.removeAllViews()
             searchButton.isEnabled = false
             Thread {
                 val ads = buildList {
-                    try { addAll(DivarOnlineSearch.search(categoryPath, queryText)) } catch (_: Exception) {}
+                    try { addAll(DivarOnlineSearch.search(categoryPath, queryText, divarFilters)) } catch (_: Exception) {}
                     try { addAll(SheypoorOnlineSearch.search(queryText)) } catch (_: Exception) {}
                 }.distinctBy { it.url }.take(50)
                 runOnUiThread {

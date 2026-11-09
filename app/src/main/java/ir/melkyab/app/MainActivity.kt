@@ -901,7 +901,13 @@ class MainActivity : Activity() {
             searchButton.isEnabled = false
             Thread {
                 val ads = buildList {
-                    try { addAll(DivarOnlineSearch.search(categoryPath, queryText, divarFilters)) } catch (_: Exception) {}
+                    try {
+                        val divarAds = DivarOnlineSearch.search(categoryPath, queryText, divarFilters)
+                        val selectedDistrict = district.text.toString().trim()
+                        addAll(if (selectedDistrict.isBlank()) divarAds else divarAds.filter {
+                            (it.title + " " + it.summary).contains(selectedDistrict, ignoreCase = true)
+                        })
+                    } catch (_: Exception) {}
                     try { addAll(SheypoorOnlineSearch.search(queryText)) } catch (_: Exception) {}
                 }.distinctBy { it.url }.take(50)
                 runOnUiThread {

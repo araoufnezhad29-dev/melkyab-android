@@ -88,7 +88,7 @@ object DivarOnlineSearch {
                 .put("server_payload", JSONObject()
                     .put("@type", "type.googleapis.com/widgets.SearchData.ServerPayload")
                     .put("additional_form_data", JSONObject()
-                        .put("data", JSONObject().put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date"))))))
+                        .put("data", JSONObject().put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date")))))))
             .put("pagination_data", JSONObject()
                 .put("@type", "type.googleapis.com/post_list.PaginationData")
                 .put("page", 1))

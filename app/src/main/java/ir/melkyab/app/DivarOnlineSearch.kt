@@ -113,13 +113,26 @@ object DivarOnlineSearch {
             }
 
             val json = JSONObject(connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
+            // Divar has returned more than one public response envelope over time.
+            // Accept both the classic list_widgets array and the web_widgets.post_list form.
+            val webWidgets = json.optJSONObject("webWidgets") ?: json.optJSONObject("web_widgets")
             val widgets = json.optJSONArray("list_widgets")
-                ?: throw IllegalStateException("پاسخ دیوار فاقد فهرست آگهی‌هاست")
+                ?: json.optJSONArray("post_list")
+                ?: webWidgets?.optJSONArray("post_list")
+                ?: webWidgets?.optJSONArray("list_widgets")
+                ?: throw IllegalStateException(
+                    "ساختار پاسخ دیوار شناخته‌شده نیست؛ کلیدها: " +
+                        (0 until json.length()).joinToString(",") { json.names()?.optString(it).orEmpty() } +
+                        "؛ پاسخ: " + json.toString().take(260)
+                )
             val result = LinkedHashMap<String, DivarOnlineAd>()
+            val widgetTypes = ArrayList<String>()
             for (i in 0 until widgets.length()) {
                 val widget = widgets.optJSONObject(i) ?: continue
-                if (widget.optString("widget_type") != "POST_ROW") continue
-                val data = widget.optJSONObject("data") ?: continue
+                val widgetType = widget.optString("widget_type")
+                if (widgetType.isNotBlank()) widgetTypes.add(widgetType)
+                if (widgetType != "POST_ROW") continue
+                val data = widget.optJSONObject("data") ?: widget.optJSONObject("post_row") ?: continue
                 val action = data.optJSONObject("action")?.optJSONObject("payload")
                 val token = action?.optString("token").orEmpty().ifBlank { data.optString("token") }
                 if (token.isBlank() || result.containsKey(token)) continue
@@ -133,6 +146,12 @@ object DivarOnlineSearch {
                 val image = data.optString("image_url")
                 result[token] = DivarOnlineAd(title, summary, price, image, "https://divar.ir/v/$token", "دیوار")
                 if (result.size >= 30) break
+            }
+            if (widgets.length() > 0 && result.isEmpty()) {
+                throw IllegalStateException(
+                    "دیوار " + widgets.length() + " ویجت فرستاد، اما POST_ROW پیدا نشد؛ انواع: " +
+                        widgetTypes.distinct().take(8).joinToString(",")
+                )
             }
             return result.values.toList()
         } finally {

@@ -1,64 +1,73 @@
 package ir.melkyab.app
 
-import android.text.Html
+import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.net.URLEncoder
 
 data class DivarOnlineAd(
     val title: String,
     val summary: String,
     val price: String,
     val imageUrl: String,
-    val url: String
+    val url: String,
+    val source: String = "دیوار"
 )
 
 object DivarOnlineSearch {
     fun search(categoryPath: String, query: String): List<DivarOnlineAd> {
-        val suffix = if (query.isBlank()) "" else "?q=" + URLEncoder.encode(query, "UTF-8")
-        val address = "https://divar.ir/s/tehran/$categoryPath$suffix"
-        val connection = (URL(address).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 15000
-            readTimeout = 20000
-            instanceFollowRedirects = true
+        val category = when (categoryPath) {
+            "buy-villa" -> "villa-sell"
+            "rent-villa" -> "villa-rent"
+            "buy-commercial" -> "commercial-sell"
+            "rent-commercial" -> "commercial-rent"
+            "buy-old-house" -> "old-house-sell"
+            "rent-old-house" -> "old-house-rent"
+            "rent-apartment" -> "apartment-rent"
+            else -> "apartment-sell"
+        }
+        val formData = JSONObject().put("category", JSONObject().put("str", JSONObject().put("value", category)))
+        val body = JSONObject()
+            .put("source_view", "FILTER")
+            .put("city_ids", org.json.JSONArray().put("1"))
+            .put("user_selected_location", JSONObject().put("places", org.json.JSONArray().put(JSONObject().put("place_id", "1"))))
+            .put("search_data", JSONObject()
+                .put("form_data", JSONObject().put("data", formData))
+                .put("server_payload", JSONObject().put("additional_form_data",
+                    JSONObject().put("data", JSONObject().put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date")))))))
+        val connection = (URL("https://api.divar.ir/v8/postlist/w/search").openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 18000
+            readTimeout = 25000
+            doOutput = true
             setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/125.0 Mobile Safari/537.36")
-            setRequestProperty("Accept", "text/html,application/xhtml+xml")
-            setRequestProperty("Accept-Language", "fa-IR,fa;q=0.9,en-US;q=0.7")
+            setRequestProperty("Accept", "application/json, text/plain, */*")
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("Referer", "https://divar.ir/")
+            setRequestProperty("X-Web-Serving-Mode", "desktop")
         }
         try {
+            connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             if (connection.responseCode !in 200..299) return emptyList()
-            val html = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            return parse(html)
+            val json = connection.inputStream.bufferedReader(Charsets.UTF_8).use { JSONObject(it.readText()) }
+            val widgets = json.optJSONArray("list_widgets") ?: return emptyList()
+            val result = LinkedHashMap<String, DivarOnlineAd>()
+            for (i in 0 until widgets.length()) {
+                val widget = widgets.optJSONObject(i) ?: continue
+                if (widget.optString("widget_type") != "POST_ROW") continue
+                val data = widget.optJSONObject("data") ?: continue
+                val action = data.optJSONObject("action")?.optJSONObject("payload")
+                val token = action?.optString("token").orEmpty().ifBlank { data.optString("token") }
+                if (token.isBlank() || result.containsKey(token)) continue
+                val title = data.optString("title").ifBlank { "آگهی دیوار" }
+                val summary = data.optString("bottom_description_text")
+                val price = data.optString("middle_description_text")
+                val image = data.optString("image_url")
+                result[token] = DivarOnlineAd(title, summary, price, image, "https://divar.ir/v/$token", "دیوار")
+                if (result.size >= 30) break
+            }
+            return result.values.toList()
         } finally {
             connection.disconnect()
         }
-    }
-
-    private fun parse(html: String): List<DivarOnlineAd> {
-        val results = LinkedHashMap<String, DivarOnlineAd>()
-        val anchor = Regex("""(?is)<a\b[^>]*href=["']([^"']*/v/[^"']+)["'][^>]*>(.*?)</a>""")
-        val imagePattern = Regex("""(?is)<img\b[^>]*(?:src|data-src)=["']([^"']+)["'][^>]*>""")
-        for (match in anchor.findAll(html)) {
-            val rawUrl = match.groupValues[1]
-            val tokenMatch = Regex("""/v/(?:[^/?#]+/)?([A-Za-z0-9_-]{7,20})(?:[?#]|$)""").find(rawUrl) ?: continue
-            val token = tokenMatch.groupValues[1]
-            if (results.containsKey(token)) continue
-            val inner = match.groupValues[2]
-            val plain = Html.fromHtml(inner.replace(Regex("""(?is)<(script|style)[^>]*>.*?</\1>"""), " "), Html.FROM_HTML_MODE_LEGACY)
-                .toString().replace('\u200c', ' ').replace(Regex("""\s+"""), " ").trim()
-            if (plain.length < 5) continue
-            val priceMatch = Regex("""[۰-۹0-9][۰-۹0-9,٬.٫]*\s*(?:تومان|میلیارد|میلیون|توافقی)""").find(plain)
-            val price = priceMatch?.value?.trim().orEmpty()
-            val title = plain.substringBefore(price).ifBlank { plain }.trim().take(110)
-            val image = imagePattern.find(inner)?.groupValues?.get(1)?.let {
-                if (it.startsWith("//")) "https:$it" else it
-            }?.takeIf { it.startsWith("https://") && !it.startsWith("data:") }.orEmpty()
-            val fullUrl = if (rawUrl.startsWith("http")) rawUrl else "https://divar.ir$rawUrl"
-            val summary = plain.removePrefix(title).trim().take(120)
-            results[token] = DivarOnlineAd(title.ifBlank { "آگهی دیوار" }, summary, price, image, fullUrl)
-            if (results.size >= 40) break
-        }
-        return results.values.toList()
     }
 }

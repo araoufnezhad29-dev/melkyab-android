@@ -720,18 +720,44 @@ class MainActivity : Activity() {
             "بهارستان","هفت تیر","مطهری","سهروردی","قصر","نواب","جمهوری","منیریه","راه‌آهن","نازی‌آباد",
             "یافت‌آباد","شهرری","فلاح","جوادیه","خانی‌آباد","آذری","زمزم","شهرک ولیعصر"
         )
-        val districtAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, tehranAreas.toMutableList())
+        fun normalizeDistrictOption(value: String): String = value.trim()
+            .replace('ي', 'ی').replace('ك', 'ک')
+            .replace("‌", "").replace("‍", "").replace(" ", "").replace("-", "")
+            .lowercase(java.util.Locale.ROOT)
+        val districtOptions = tehranAreas.distinctBy { normalizeDistrictOption(it) }.toMutableList()
+        val districtAdapter = object : ArrayAdapter<String>(
+            this, android.R.layout.simple_dropdown_item_1line, ArrayList(districtOptions)
+        ) {
+            override fun getFilter(): android.widget.Filter = object : android.widget.Filter() {
+                override fun performFiltering(constraint: CharSequence?): FilterResults {
+                    val query = normalizeDistrictOption(constraint?.toString().orEmpty())
+                    val matches = if (query.isBlank()) districtOptions.toList() else
+                        districtOptions.filter { normalizeDistrictOption(it).contains(query) }
+                    return FilterResults().apply { values = matches; count = matches.size }
+                }
+                @Suppress("UNCHECKED_CAST")
+                override fun publishResults(constraint: CharSequence?, results: FilterResults?) {
+                    clear()
+                    val matches = results?.values as? List<String> ?: emptyList()
+                    addAll(matches)
+                    notifyDataSetChanged()
+                }
+            }
+        }
         district.setAdapter(districtAdapter)
+        var districtLoadStarted = false
         district.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) {
+            if (hasFocus && !districtLoadStarted) {
+                districtLoadStarted = true
                 Thread {
-                    val allDistricts = try { DivarOnlineSearch.getTehranDistricts().map { it.first } } catch (_: Exception) { emptyList() }
-                    if (allDistricts.isNotEmpty()) runOnUiThread {
+                    val remoteDistricts = try { DivarOnlineSearch.getTehranDistricts().map { it.first } } catch (_: Exception) { emptyList() }
+                    if (remoteDistricts.isNotEmpty()) runOnUiThread {
                         val typed = district.text.toString()
-                        districtAdapter.clear()
-                        districtAdapter.addAll(allDistricts)
-                        districtAdapter.filter.filter(typed)
-                        if (typed.isEmpty()) district.showDropDown()
+                        districtOptions.clear()
+                        districtOptions.addAll((tehranAreas + remoteDistricts).distinctBy { normalizeDistrictOption(it) })
+                        districtAdapter.filter.filter(typed) {
+                            if (district.hasFocus()) district.showDropDown()
+                        }
                     }
                 }.start()
             }

@@ -921,11 +921,12 @@ class MainActivity : Activity() {
             resultTitle.text = "در حال جست‌وجوی آگهی‌ها…"
             resultList.removeAllViews()
             searchButton.isEnabled = false
+            val chosenDistrictForSearch = district.text.toString().trim()
             Thread {
                 val ads = buildList {
                     try {
                         val filtersForSearch = org.json.JSONObject(divarFilters.toString())
-                        val chosenDistrict = district.text.toString().trim()
+                        val chosenDistrict = chosenDistrictForSearch
                         if (chosenDistrict.isNotBlank()) {
                             val resolvedDistrictId = DivarOnlineSearch.districtId(chosenDistrict)
                             if (!resolvedDistrictId.isNullOrBlank()) {

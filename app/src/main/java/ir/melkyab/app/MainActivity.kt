@@ -918,21 +918,22 @@ class MainActivity : Activity() {
             if (parking.selectedItemPosition != 0) divarFilters.put("parking", org.json.JSONObject().put("boolean", org.json.JSONObject().put("value", parking.selectedItemPosition == 1)))
             if (storage.selectedItemPosition != 0) divarFilters.put("warehouse", org.json.JSONObject().put("boolean", org.json.JSONObject().put("value", storage.selectedItemPosition == 1)))
             if (elevator.selectedItemPosition != 0) divarFilters.put("elevator", org.json.JSONObject().put("boolean", org.json.JSONObject().put("value", elevator.selectedItemPosition == 1)))
-            val chosenDistrict = district.text.toString().trim()
-            if (chosenDistrict.isNotBlank()) {
-                val districtId = DivarOnlineSearch.districtId(chosenDistrict)
-                if (!districtId.isNullOrBlank()) {
-                    divarFilters.put("districts", org.json.JSONObject().put("repeated_string",
-                        org.json.JSONObject().put("value", org.json.JSONArray().put(districtId))))
-                }
-            }
             resultTitle.text = "در حال جست‌وجوی آگهی‌ها…"
             resultList.removeAllViews()
             searchButton.isEnabled = false
             Thread {
                 val ads = buildList {
                     try {
-                        val divarAds = DivarOnlineSearch.search(categoryPath, queryText, divarFilters)
+                        val filtersForSearch = org.json.JSONObject(divarFilters.toString())
+                        val chosenDistrict = district.text.toString().trim()
+                        if (chosenDistrict.isNotBlank()) {
+                            val resolvedDistrictId = DivarOnlineSearch.districtId(chosenDistrict)
+                            if (!resolvedDistrictId.isNullOrBlank()) {
+                                filtersForSearch.put("districts", org.json.JSONObject().put("repeated_string",
+                                    org.json.JSONObject().put("value", org.json.JSONArray().put(resolvedDistrictId))))
+                            }
+                        }
+                        val divarAds = DivarOnlineSearch.search(categoryPath, queryText, filtersForSearch)
                         addAll(divarAds)
                     } catch (_: Exception) {}
                     try { addAll(SheypoorOnlineSearch.search(queryText)) } catch (_: Exception) {}

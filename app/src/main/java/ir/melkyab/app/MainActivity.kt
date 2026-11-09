@@ -713,7 +713,22 @@ class MainActivity : Activity() {
             "بهارستان","هفت تیر","مطهری","سهروردی","قصر","نواب","جمهوری","منیریه","راه‌آهن","نازی‌آباد",
             "یافت‌آباد","شهرری","فلاح","جوادیه","خانی‌آباد","آذری","زمزم","شهرک ولیعصر"
         )
-        district.setAdapter(ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, tehranAreas))
+        val districtAdapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, tehranAreas.toMutableList())
+        district.setAdapter(districtAdapter)
+        district.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                Thread {
+                    val allDistricts = try { DivarOnlineSearch.getTehranDistricts().map { it.first } } catch (_: Exception) { emptyList() }
+                    if (allDistricts.isNotEmpty()) runOnUiThread {
+                        val typed = district.text.toString()
+                        districtAdapter.clear()
+                        districtAdapter.addAll(allDistricts)
+                        districtAdapter.filter.filter(typed)
+                        if (typed.isEmpty()) district.showDropDown()
+                    }
+                }.start()
+            }
+        }
         district.setOnFocusChangeListener { _, hasFocus -> if (hasFocus && district.text.isEmpty()) district.showDropDown() }
         panel.addViewSafely(district, LinearLayout.LayoutParams(-1, dp(46)))
         val kind = Spinner(this).apply {
@@ -881,14 +896,21 @@ class MainActivity : Activity() {
                 }
             }
             addDivarRange("size", minArea, maxArea)
-            if (deal.selectedItemPosition == 0) addDivarRange("price", saleRange.fields.first, saleRange.fields.second)
+            when (deal.selectedItemPosition) {
+                0 -> addDivarRange("price", saleRange.fields.first, saleRange.fields.second)
+                1 -> addDivarRange("credit", depositRange.fields.first, depositRange.fields.second)
+                else -> {
+                    addDivarRange("credit", depositRange.fields.first, depositRange.fields.second)
+                    addDivarRange("rent", rentRange.fields.first, rentRange.fields.second)
+                }
+            }
             if (rooms.selectedItemPosition > 1) {
                 val roomValues = org.json.JSONArray()
                 val selectedRooms = when (rooms.selectedItemPosition) {
                     2 -> listOf("یک")
                     3 -> listOf("دو")
                     4 -> listOf("سه")
-                    else -> listOf("چهار", "پنج")
+                    else -> listOf("بیشتر")
                 }
                 selectedRooms.forEach { roomValues.put(it) }
                 divarFilters.put("rooms", org.json.JSONObject().put("repeated_string", org.json.JSONObject().put("value", roomValues)))
@@ -896,6 +918,14 @@ class MainActivity : Activity() {
             if (parking.selectedItemPosition != 0) divarFilters.put("parking", org.json.JSONObject().put("boolean", org.json.JSONObject().put("value", parking.selectedItemPosition == 1)))
             if (storage.selectedItemPosition != 0) divarFilters.put("warehouse", org.json.JSONObject().put("boolean", org.json.JSONObject().put("value", storage.selectedItemPosition == 1)))
             if (elevator.selectedItemPosition != 0) divarFilters.put("elevator", org.json.JSONObject().put("boolean", org.json.JSONObject().put("value", elevator.selectedItemPosition == 1)))
+            val chosenDistrict = district.text.toString().trim()
+            if (chosenDistrict.isNotBlank()) {
+                val districtId = DivarOnlineSearch.districtId(chosenDistrict)
+                if (!districtId.isNullOrBlank()) {
+                    divarFilters.put("districts", org.json.JSONObject().put("repeated_string",
+                        org.json.JSONObject().put("value", org.json.JSONArray().put(districtId))))
+                }
+            }
             resultTitle.text = "در حال جست‌وجوی آگهی‌ها…"
             resultList.removeAllViews()
             searchButton.isEnabled = false
@@ -903,10 +933,7 @@ class MainActivity : Activity() {
                 val ads = buildList {
                     try {
                         val divarAds = DivarOnlineSearch.search(categoryPath, queryText, divarFilters)
-                        val selectedDistrict = district.text.toString().trim()
-                        addAll(if (selectedDistrict.isBlank()) divarAds else divarAds.filter {
-                            (it.title + " " + it.summary).contains(selectedDistrict, ignoreCase = true)
-                        })
+                        addAll(divarAds)
                     } catch (_: Exception) {}
                     try { addAll(SheypoorOnlineSearch.search(queryText)) } catch (_: Exception) {}
                 }.distinctBy { it.url }.take(50)

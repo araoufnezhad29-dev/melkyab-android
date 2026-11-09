@@ -847,7 +847,7 @@ class MainActivity : Activity() {
             when (deal.selectedItemPosition) {
                 0 -> addRange(saleRange.fields, "قیمت")
                 1 -> addRange(depositRange.fields, "رهن")
-                else -> { addRange(depositRange, "رهن"); addRange(rentRange.fields, "اجاره") }
+                else -> { addRange(depositRange.fields, "رهن"); addRange(rentRange.fields, "اجاره") }
             }
             if (rooms.selectedItemPosition == 1) terms.add("بدون اتاق")
             else if (rooms.selectedItemPosition > 1) terms.add(rooms.selectedItem.toString() + " خوابه")

@@ -849,8 +849,79 @@ class MainActivity : Activity() {
         }
         val resultTitle = text("آماده جست‌وجو", 14f, navy, true)
         resultSummary.addViewSafely(resultTitle, LinearLayout.LayoutParams(-1, -2))
+        val sourceCounts = text("دیوار: ۰ آگهی  ·  شیپور: ۰ آگهی", 11f, muted, true)
+        resultSummary.addViewSafely(sourceCounts, LinearLayout.LayoutParams(-1, -2))
+        resultSummary.addViewSafely(text("فیلتر نمایش کارت‌ها", 11f, navy, true))
+        val sourceFilter = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
+                listOf("همه آگهی‌ها", "فقط دیوار", "فقط شیپور"))
+        }
+        resultSummary.addViewSafely(sourceFilter, LinearLayout.LayoutParams(-1, dp(42)))
         val resultList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         resultSummary.addViewSafely(resultList, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+        var latestAds: List<DivarOnlineAd> = emptyList()
+        fun renderFilteredAds() {
+            resultList.removeAllViews()
+            val visibleAds = when (sourceFilter.selectedItemPosition) {
+                1 -> latestAds.filter { it.source == "دیوار" }
+                2 -> latestAds.filter { it.source == "شیپور" }
+                else -> latestAds
+            }
+            if (visibleAds.isEmpty()) {
+                resultList.addView(text(
+                    if (latestAds.isEmpty()) "برای این جست‌وجو آگهی‌ای دریافت نشد."
+                    else "از این منبع آگهی‌ای دریافت نشده است.",
+                    12f, muted))
+                return
+            }
+            visibleAds.forEach { ad ->
+                val card = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(8), dp(8), dp(8), dp(8))
+                    background = rounded(Color.rgb(250,252,255), 14, Color.rgb(218,226,234))
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener {
+                        try {
+                            startActivity(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java)
+                                .putExtra(OnlineAdWebViewActivity.EXTRA_URL, ad.url))
+                        } catch (_: Exception) {
+                            Toast.makeText(this@MainActivity, "باز کردن آگهی ممکن نشد", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+                val image = ImageView(this).apply {
+                    scaleType = ImageView.ScaleType.CENTER_CROP
+                    background = rounded(Color.rgb(235,239,243), 10)
+                }
+                card.addViewSafely(image, LinearLayout.LayoutParams(dp(104), dp(96)).apply { marginEnd = dp(9) })
+                val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+                details.addViewSafely(text(ad.title, 13f, navy, true))
+                if (ad.price.isNotBlank()) details.addViewSafely(text(ad.price, 12f, blue, true))
+                if (ad.summary.isNotBlank()) details.addViewSafely(text(ad.summary, 10f, muted).apply { maxLines = 2 })
+                details.addViewSafely(text("منبع: " + ad.source + "  ·  مشاهده آگهی اصلی داخل ملک‌یاب", 10f, muted))
+                card.addViewSafely(details, LinearLayout.LayoutParams(0, -2, 1f))
+                resultList.addViewSafely(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+                if (ad.imageUrl.isNotBlank()) Thread {
+                    val bitmap = try {
+                        val connection = java.net.URL(ad.imageUrl).openConnection().apply {
+                            connectTimeout = 10000
+                            readTimeout = 10000
+                            setRequestProperty("User-Agent", "Mozilla/5.0")
+                        }
+                        connection.getInputStream().use { android.graphics.BitmapFactory.decodeStream(it) }
+                    } catch (_: Exception) { null }
+                    if (bitmap != null) runOnUiThread { image.setImageBitmap(bitmap) }
+                }.start()
+            }
+        }
+        sourceFilter.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                renderFilteredAds()
+            }
+        }
         page.addViewSafely(resultSummary, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
         searchButton.setOnClickListener {
             val dealText = deal.selectedItem.toString()
@@ -923,72 +994,50 @@ class MainActivity : Activity() {
             searchButton.isEnabled = false
             val chosenDistrictForSearch = district.text.toString().trim()
             Thread {
-                val ads = buildList {
-                    try {
-                        val filtersForSearch = org.json.JSONObject(divarFilters.toString())
-                        val chosenDistrict = chosenDistrictForSearch
-                        val resolvedDistrictId = if (chosenDistrict.isBlank()) null else DivarOnlineSearch.districtId(chosenDistrict)
-                        if (!resolvedDistrictId.isNullOrBlank()) {
-                            filtersForSearch.put("districts", org.json.JSONObject().put("repeated_string",
-                                org.json.JSONObject().put("value", org.json.JSONArray().put(resolvedDistrictId))))
-                        }
-                        val divarAds = DivarOnlineSearch.search(categoryPath, queryText, filtersForSearch)
-                        if (chosenDistrict.isBlank() || !resolvedDistrictId.isNullOrBlank()) addAll(divarAds)
-                        else addAll(divarAds.filter {
-                            (it.title + " " + it.summary).contains(chosenDistrict, ignoreCase = true)
-                        })
-                    } catch (_: Exception) {}
-                    try { addAll(SheypoorOnlineSearch.search(queryText)) } catch (_: Exception) {}
-                }.distinctBy { it.url }.take(50)
+                fun normalizePlace(value: String): String = value.trim()
+                    .replace('ي', 'ی').replace('ك', 'ک')
+                    .replace("‌", "").replace(" ", "").replace("-", "").replace("_", "")
+                    .lowercase(java.util.Locale.ROOT)
+                fun belongsToSelectedDistrict(ad: DivarOnlineAd, selected: String): Boolean {
+                    if (selected.isBlank()) return true
+                    val wanted = normalizePlace(selected)
+                    val adLocation = normalizePlace(ad.summary)
+                    val adTitle = normalizePlace(ad.title)
+                    // A selected neighborhood is a strict condition: do not show city-wide
+                    // results when the source did not identify the requested neighborhood.
+                    return adLocation.contains(wanted) || adTitle.contains(wanted)
+                }
+
+                val chosenDistrict = chosenDistrictForSearch
+                val divarAds = try {
+                    val filtersForSearch = org.json.JSONObject(divarFilters.toString())
+                    val resolvedDistrictId = if (chosenDistrict.isBlank()) null else DivarOnlineSearch.districtId(chosenDistrict)
+                    if (!resolvedDistrictId.isNullOrBlank()) {
+                        filtersForSearch.put("districts", org.json.JSONObject().put("repeated_string",
+                            org.json.JSONObject().put("value", org.json.JSONArray().put(resolvedDistrictId))))
+                    }
+                    DivarOnlineSearch.search(categoryPath, queryText, filtersForSearch)
+                        .filter { belongsToSelectedDistrict(it, chosenDistrict) }
+                } catch (_: Exception) { emptyList() }
+
+                val sheypoorAds = try {
+                    SheypoorOnlineSearch.search(queryText)
+                        .filter { belongsToSelectedDistrict(it, chosenDistrict) }
+                } catch (_: Exception) { emptyList() }
+
+                val ads = (divarAds + sheypoorAds).distinctBy { it.url }.take(50)
                 runOnUiThread {
                     searchButton.isEnabled = true
-                    resultList.removeAllViews()
-                    resultTitle.text = if (ads.isEmpty()) "آگهی قابل دریافت پیدا نشد" else "تعداد کارت‌های دریافتی از دیوار و شیپور: " + persianDigits(ads.size.toString())
-                    if (ads.isEmpty()) {
-                        resultList.addView(text("ممکن است سایت‌ها دسترسی خودکار را محدود کرده باشند یا نتیجه‌ای برای این جست‌وجو موجود نباشد. دوباره با عبارت ساده‌تر امتحان کن. برای جست‌وجوی کاشانو از دکمهٔ بالای فرم استفاده کن؛ نمایش کارت مستقیم کاشانو هنوز در دسترس نیست.", 12f, muted))
-                    } else {
-                        ads.forEach { ad ->
-                            val card = LinearLayout(this).apply {
-                                orientation = LinearLayout.HORIZONTAL
-                                gravity = Gravity.CENTER_VERTICAL
-                                setPadding(dp(8), dp(8), dp(8), dp(8))
-                                background = rounded(Color.rgb(250,252,255), 14, Color.rgb(218,226,234))
-                                isClickable = true
-                                isFocusable = true
-                                setOnClickListener {
-                                    val uri = Uri.parse(ad.url)
-                                    try {
-                                        startActivity(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java).putExtra(OnlineAdWebViewActivity.EXTRA_URL, ad.url))
-                                    } catch (_: Exception) {
-                                        try { startActivity(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java).putExtra(OnlineAdWebViewActivity.EXTRA_URL, ad.url)) }
-                                        catch (_: Exception) { Toast.makeText(this@MainActivity, "مرورگر در دسترس نیست", Toast.LENGTH_SHORT).show() }
-                                    }
-                                }
-                            }
-                            val image = ImageView(this).apply {
-                                scaleType = ImageView.ScaleType.CENTER_CROP
-                                background = rounded(Color.rgb(235,239,243), 10)
-                            }
-                            card.addViewSafely(image, LinearLayout.LayoutParams(dp(104), dp(96)).apply { marginEnd = dp(9) })
-                            val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                            details.addViewSafely(text(ad.title, 13f, navy, true))
-                            if (ad.price.isNotBlank()) details.addViewSafely(text(ad.price, 12f, blue, true))
-                            if (ad.summary.isNotBlank()) details.addViewSafely(text(ad.summary, 10f, muted).apply { maxLines = 2 })
-                            details.addViewSafely(text("منبع: " + ad.source + "  ·  مشاهده آگهی اصلی داخل ملک‌یاب", 10f, muted))
-                            card.addViewSafely(details, LinearLayout.LayoutParams(0, -2, 1f))
-                            resultList.addViewSafely(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
-                            if (ad.imageUrl.isNotBlank()) Thread {
-                                val bitmap = try {
-                                    val connection = java.net.URL(ad.imageUrl).openConnection().apply {
-                                        connectTimeout = 10000
-                                        readTimeout = 10000
-                                        setRequestProperty("User-Agent", "Mozilla/5.0")
-                                    }
-                                    connection.getInputStream().use { android.graphics.BitmapFactory.decodeStream(it) }
-                                } catch (_: Exception) { null }
-                                if (bitmap != null) runOnUiThread { image.setImageBitmap(bitmap) }
-                            }.start()
-                        }
+                    latestAds = ads
+                    sourceCounts.text = "دیوار: " + persianDigits(divarAds.size.toString()) +
+                        " آگهی  ·  شیپور: " + persianDigits(sheypoorAds.size.toString()) + " آگهی"
+                    resultTitle.text = if (ads.isEmpty()) "آگهی مطابق فیلترها پیدا نشد"
+                        else "مجموع آگهی‌های دریافت‌شده: " + persianDigits(ads.size.toString())
+                    renderFilteredAds()
+                    if (divarAds.isEmpty() && sheypoorAds.isEmpty()) {
+                        Toast.makeText(this@MainActivity,
+                            "از هیچ‌کدام از دو منبع نتیجه‌ای دریافت نشد؛ ممکن است سایت دسترسی خودکار را محدود کرده باشد.",
+                            Toast.LENGTH_LONG).show()
                     }
                 }
             }.start()

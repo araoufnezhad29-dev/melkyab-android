@@ -836,34 +836,6 @@ class MainActivity : Activity() {
         val elevator = yesNoSpinner("آسانسور")
 
         panel.addViewSafely(text("منابع دریافت کارت آگهی: دیوار، شیپور و کاشانو", 12f, navy, true))
-        kashanoResultHandler = { raw ->
-            try {
-                val array = org.json.JSONArray(raw)
-                val imported = mutableListOf<DivarOnlineAd>()
-                for (i in 0 until array.length()) {
-                    val item = array.optJSONObject(i) ?: continue
-                    val url = item.optString("url")
-                    if (url.isBlank()) continue
-                    imported.add(DivarOnlineAd(
-                        title = item.optString("title").ifBlank { "آگهی کاشانو" },
-                        summary = item.optString("summary"),
-                        price = item.optString("price"),
-                        imageUrl = item.optString("image"),
-                        url = url,
-                        source = "کاشانو"
-                    ))
-                }
-                latestAds = (latestAds.filter { it.source != "کاشانو" } + imported).distinctBy { it.url }.take(80)
-                sourceCounts.text = sourceCounts.text.toString() + "  ·  کاشانو: " + persianDigits(imported.size.toString()) + " آگهی"
-                resultTitle.text = "مجموع آگهی‌های دریافت‌شده: " + persianDigits(latestAds.size.toString())
-                sourceFilter.setSelection(0)
-                renderFilteredAds()
-                Toast.makeText(this@MainActivity, persianDigits(imported.size.toString()) + " آگهی کاشانو به کارت‌ها اضافه شد", Toast.LENGTH_LONG).show()
-            } catch (e: Exception) {
-                Toast.makeText(this@MainActivity, "پردازش آگهی‌های کاشانو ناموفق بود", Toast.LENGTH_LONG).show()
-                android.util.Log.e("MelkYab", "Kashano import failed", e)
-            }
-        }
         panel.addViewSafely(button("جست‌وجو و استخراج آگهی‌های کاشانو", {
             try {
                 kashanoResultHandler = null
@@ -959,6 +931,34 @@ class MainActivity : Activity() {
             override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
             override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
                 renderFilteredAds()
+            }
+        }
+        kashanoResultHandler = { raw ->
+            try {
+                val array = org.json.JSONArray(raw)
+                val imported = mutableListOf<DivarOnlineAd>()
+                for (i in 0 until array.length()) {
+                    val item = array.optJSONObject(i) ?: continue
+                    val url = item.optString("url")
+                    if (url.isBlank()) continue
+                    imported.add(DivarOnlineAd(
+                        title = item.optString("title").ifBlank { "آگهی کاشانو" },
+                        summary = item.optString("summary"),
+                        price = item.optString("price"),
+                        imageUrl = item.optString("image"),
+                        url = url,
+                        source = "کاشانو"
+                    ))
+                }
+                latestAds = (latestAds.filter { it.source != "کاشانو" } + imported).distinctBy { it.url }.take(80)
+                sourceCounts.text = sourceCounts.text.toString() + "  ·  کاشانو: " + persianDigits(imported.size.toString()) + " آگهی"
+                resultTitle.text = "مجموع آگهی‌های دریافت‌شده: " + persianDigits(latestAds.size.toString())
+                sourceFilter.setSelection(0)
+                renderFilteredAds()
+                Toast.makeText(this@MainActivity, persianDigits(imported.size.toString()) + " آگهی کاشانو به کارت‌ها اضافه شد", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "پردازش آگهی‌های کاشانو ناموفق بود", Toast.LENGTH_LONG).show()
+                android.util.Log.e("MelkYab", "Kashano import failed", e)
             }
         }
         page.addViewSafely(resultSummary, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })

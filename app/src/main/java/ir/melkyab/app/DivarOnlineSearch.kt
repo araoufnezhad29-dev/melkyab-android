@@ -76,12 +76,22 @@ object DivarOnlineSearch {
         }
         val body = JSONObject()
             .put("source_view", "FILTER")
+            .put("disable_recommendation", false)
+            .put("map_state", JSONObject().put("camera_info", JSONObject().put("bbox", JSONObject())))
+            .put("page_state", "HALF_STATE")
             .put("city_ids", org.json.JSONArray().put("1"))
+            .put("previous_place_ids", org.json.JSONArray())
             .put("user_selected_location", JSONObject().put("places", org.json.JSONArray().put(JSONObject().put("place_id", "1"))))
+            .put("previous_user_selected_location", JSONObject().put("places", org.json.JSONArray()))
             .put("search_data", JSONObject()
                 .put("form_data", JSONObject().put("data", formData))
-                .put("server_payload", JSONObject().put("additional_form_data",
-                    JSONObject().put("data", JSONObject().put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date")))))))
+                .put("server_payload", JSONObject()
+                    .put("@type", "type.googleapis.com/widgets.SearchData.ServerPayload")
+                    .put("additional_form_data", JSONObject()
+                        .put("data", JSONObject().put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date")))))))
+            .put("pagination_data", JSONObject()
+                .put("@type", "type.googleapis.com/post_list.PaginationData")
+                .put("page", 1))
         val connection = (URL("https://api.divar.ir/v8/postlist/w/search").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 18000

@@ -814,7 +814,15 @@ class MainActivity : Activity() {
         val storage = yesNoSpinner("انباری")
         val elevator = yesNoSpinner("آسانسور")
 
-        panel.addViewSafely(text("منابع متصل: دیوار و شیپور", 12f, navy, true))
+        panel.addViewSafely(text("منابع دریافت کارت آگهی: دیوار و شیپور", 12f, navy, true))
+        panel.addViewSafely(button("جست‌وجوی مستقیم در کاشانو", {
+            try {
+                startActivity(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java)
+                    .putExtra(OnlineAdWebViewActivity.EXTRA_URL, "https://kashano.ir/"))
+            } catch (_: Exception) {
+                Toast.makeText(this@MainActivity, "باز کردن کاشانو ممکن نشد", Toast.LENGTH_SHORT).show()
+            }
+        }), LinearLayout.LayoutParams(-1, dp(44)).apply { topMargin = dp(5) })
         val searchButton = button("جست‌وجو در اینترنت", {}, true)
         panel.addViewSafely(searchButton, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         page.addViewSafely(panel, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
@@ -899,9 +907,9 @@ class MainActivity : Activity() {
                 runOnUiThread {
                     searchButton.isEnabled = true
                     resultList.removeAllViews()
-                    resultTitle.text = if (ads.isEmpty()) "آگهی قابل دریافت پیدا نشد" else "تعداد آگهی‌های دریافت‌شده از دیوار و شیپور: " + persianDigits(ads.size.toString())
+                    resultTitle.text = if (ads.isEmpty()) "آگهی قابل دریافت پیدا نشد" else "تعداد کارت‌های دریافتی از دیوار و شیپور: " + persianDigits(ads.size.toString())
                     if (ads.isEmpty()) {
-                        resultList.addView(text("ممکن است سایت‌ها دسترسی خودکار را محدود کرده باشند یا نتیجه‌ای برای این جست‌وجو موجود نباشد. دوباره با عبارت ساده‌تر امتحان کن. کاشانو هنوز به دریافت کارت‌های آگهی متصل نشده است.", 12f, muted))
+                        resultList.addView(text("ممکن است سایت‌ها دسترسی خودکار را محدود کرده باشند یا نتیجه‌ای برای این جست‌وجو موجود نباشد. دوباره با عبارت ساده‌تر امتحان کن. برای جست‌وجوی کاشانو از دکمهٔ بالای فرم استفاده کن؛ نمایش کارت مستقیم کاشانو هنوز در دسترس نیست.", 12f, muted))
                     } else {
                         ads.forEach { ad ->
                             val card = LinearLayout(this).apply {

@@ -851,71 +851,47 @@ class MainActivity : Activity() {
             return
         }
         if (query.isNotBlank()) {
-            items.take(10).forEach { p ->
-                val preview = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    setPadding(dp(12),dp(11),dp(12),dp(11))
-                    background = rounded(Color.WHITE,16,Color.rgb(224,216,198))
-                    elevation = dp(2).toFloat()
-                    isClickable = true
-                    isFocusable = true
-                    setOnClickListener { showPropertyDetails(p) }
+            if (!searchSubmitted) {
+                list.addViewSafely(text("پیش‌نمایش فایل‌های پیشنهادی — برای دیدن همه، دکمه جست‌وجو روی صفحه‌کلید را بزن", 10f, muted, true))
+                items.take(8).forEach { p ->
+                    val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8),dp(6),dp(8),dp(6)); background = rounded(Color.WHITE,13,Color.rgb(222,211,188)); isClickable = true; isFocusable = true }
+                    val photoPath = try { val a=JSONArray(p.photos); if(a.length()>0) a.getString(0) else "" } catch (_:Exception) { "" }
+                    val thumb = ImageView(this).apply { scaleType=ImageView.ScaleType.CENTER_CROP; background=rounded(pale,9); if(photoPath.isNotBlank()) try { setImageURI(Uri.parse(photoPath)) } catch (_:Exception) {} }
+                    row.addViewSafely(thumb,LinearLayout.LayoutParams(dp(54),dp(54)).apply { marginEnd=dp(9) })
+                    val details = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
+                    details.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },12f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
+                    val money = when(p.deal) { "فروش" -> "فروش: "+formatMoney(p.price); "رهن کامل" -> "رهن: "+formatMoney(p.deposit); else -> "رهن "+formatMoney(p.deposit)+" | اجاره "+formatMoney(p.rent) }
+                    details.addViewSafely(text(money,10f,blue,true).apply { maxLines=1 })
+                    details.addViewSafely(text(p.kind+" • "+p.area+" متر",9f,muted).apply { maxLines=1 })
+                    row.addViewSafely(details,LinearLayout.LayoutParams(0,-2,1f))
+                    row.addViewSafely(text("›",22f,gold,true))
+                    row.setOnClickListener { showPropertyDetails(p) }
+                    list.addViewSafely(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(6) })
                 }
-                val heading = LinearLayout(this).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    gravity = Gravity.CENTER_VERTICAL
-                }
-                val photo = try { val a=JSONArray(p.photos); if(a.length()>0) a.getString(0) else "" } catch (_:Exception) { "" }
-                if (photo.isNotBlank()) {
-                    val thumb = ImageView(this).apply {
-                        scaleType = ImageView.ScaleType.CENTER_CROP
-                        background = rounded(pale,10)
-                        try { setImageURI(Uri.parse(photo)) } catch (_:Exception) {}
-                    }
-                    heading.addViewSafely(thumb, LinearLayout.LayoutParams(dp(92),dp(92)).apply { marginEnd=dp(11) })
-                } else {
-                    val noPhoto = TextView(this).apply {
-                        text = "عکس ندارد"
-                        textSize = 11f
-                        gravity = Gravity.CENTER
-                        setTextColor(muted)
-                        background = rounded(pale,10)
-                    }
-                    heading.addViewSafely(noPhoto, LinearLayout.LayoutParams(dp(92),dp(92)).apply { marginEnd=dp(11) })
-                }
-                val info = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                val category = when (p.deal) {
-                    "فروش" -> "فروش"
-                    "رهن کامل" -> "رهن کامل"
-                    else -> "رهن و اجاره"
-                }
-                info.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },15f,navy,true).apply {
-                    maxLines=2
-                    ellipsize=android.text.TextUtils.TruncateAt.END
-                })
-                info.addViewSafely(text(category + "  •  " + p.kind,10f,muted,true).apply { maxLines=1 })
-                val priceLine = when(p.deal) {
-                    "فروش" -> "قیمت کل: " + formatMoney(p.price) + " تومان"
-                    "رهن کامل" -> "رهن کامل: " + formatMoney(p.deposit) + " تومان"
-                    else -> "رهن: " + formatMoney(p.deposit) + "  |  اجاره: " + formatMoney(p.rent)
-                }
-                info.addViewSafely(text(priceLine,12f,blue,true).apply { maxLines=2 })
-                heading.addViewSafely(info,LinearLayout.LayoutParams(0,-2,1f))
-                preview.addViewSafely(heading)
-                val areaValue = rawMoney(p.area).toLongOrNull() ?: 0L
-                val priceValue = rawMoney(p.price).toLongOrNull() ?: 0L
-                preview.addViewSafely(text("متراژ: " + (p.area.ifBlank { "—" }) + " متر",12f,navy,true))
-                if (p.deal == "فروش" && areaValue > 0L && priceValue > 0L) {
-                    preview.addViewSafely(text("قیمت هر متر مربع: " + formatMoney((priceValue / areaValue).toString()) + " تومان",12f,Color.rgb(174,133,59),true))
-                }
-                preview.addViewSafely(text("تک‌واحدی: " + (p.singleUnit.ifBlank { "نامشخص" }),11f,muted))
-                val facilities = mutableListOf<String>()
-                if (p.parking.isNotBlank() && p.parking != "نامشخص") facilities.add("پارکینگ: " + p.parking)
-                if (p.elevator.isNotBlank() && p.elevator != "نامشخص") facilities.add("آسانسور: " + p.elevator)
-                if (facilities.isNotEmpty()) preview.addViewSafely(text(facilities.joinToString("    |    "),11f,Color.rgb(52,125,91),true))
-                list.addViewSafely(preview,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(9) })
+                if(items.isEmpty()) list.addViewSafely(text("موردی مطابق عبارت واردشده پیدا نشد.",12f,muted))
+                return
             }
-            if (items.size > 10) list.addViewSafely(text("۱۰ مورد اول از " + items.size + " آگهی؛ برای مشاهده همه، جست‌وجو را دقیق‌تر کن.",10f,muted))
+            list.addViewSafely(text("نتایج جست‌وجو • "+items.size+" فایل",13f,navy,true))
+            items.chunked(2).forEach { pair ->
+                val row = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.TOP }
+                pair.forEach { p ->
+                    val card = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(8),dp(8),dp(8),dp(8)); background=rounded(Color.WHITE,14,Color.rgb(222,211,188)); elevation=dp(2).toFloat(); isClickable=true; isFocusable=true; setOnClickListener { showPropertyDetails(p) } }
+                    val photoPath = try { val a=JSONArray(p.photos); if(a.length()>0) a.getString(0) else "" } catch (_:Exception) { "" }
+                    val thumb = ImageView(this).apply { scaleType=ImageView.ScaleType.CENTER_CROP; background=rounded(pale,9); if(photoPath.isNotBlank()) try { setImageURI(Uri.parse(photoPath)) } catch (_:Exception) {} }
+                    card.addViewSafely(thumb,LinearLayout.LayoutParams(-1,dp(96)))
+                    card.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },12f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
+                    card.addViewSafely(text(p.deal+" • "+p.kind,9f,muted).apply { maxLines=1 })
+                    val money = when(p.deal) { "فروش" -> "قیمت: "+formatMoney(p.price); "رهن کامل" -> "رهن: "+formatMoney(p.deposit); else -> "رهن: "+formatMoney(p.deposit)+"\nاجاره: "+formatMoney(p.rent) }
+                    card.addViewSafely(text(money,10f,blue,true).apply { maxLines=2 })
+                    card.addViewSafely(text("متراژ: "+p.area+" متر",10f,navy))
+                    if(p.deal=="فروش") { val sqm=rawMoney(p.area).toLongOrNull()?:0L; val price=rawMoney(p.price).toLongOrNull()?:0L; if(sqm>0&&price>0) card.addViewSafely(text("هر متر: "+formatMoney((price/sqm).toString()),9f,gold,true)) }
+                    card.addViewSafely(text("تک‌واحدی: "+p.singleUnit,9f,muted))
+                    card.addViewSafely(text("پارکینگ: "+p.parking+" • آسانسور: "+p.elevator,9f,muted).apply { maxLines=2 })
+                    row.addViewSafely(card,LinearLayout.LayoutParams(0,-2,1f).apply { marginStart=dp(4); marginEnd=dp(4); bottomMargin=dp(8) })
+                }
+                if(pair.size==1) row.addViewSafely(View(this),LinearLayout.LayoutParams(0,1,1f))
+                list.addViewSafely(row,LinearLayout.LayoutParams(-1,-2))
+            }
             return
         }
         if (displayMode == "grid") {

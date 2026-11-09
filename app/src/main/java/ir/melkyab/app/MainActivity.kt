@@ -112,6 +112,7 @@ class MainActivity : Activity() {
     private var displayMode = "list"
     private var dealFilter = "همه"
     private var activeSection: String? = null
+    private var searchSubmitted = false
     private var systemBackCallback: OnBackInvokedCallback? = null
     // ملک‌یاب visual identity: deep midnight navy, warm ivory and refined antique gold.
     private val navy = Color.rgb(28, 43, 57)
@@ -385,13 +386,22 @@ class MainActivity : Activity() {
         }
         search = field("عنوان")
         search.background = rounded(Color.rgb(255,254,250),13,Color.rgb(232,224,207))
+        search.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+        search.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                searchSubmitted = true
+                (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).hideSoftInputFromWindow(search.windowToken, 0)
+                refreshList()
+                true
+            } else false
+        }
         searchPanel.addViewSafely(search, LinearLayout.LayoutParams(-1, dp(48)))
         page.addViewSafely(searchPanel, LinearLayout.LayoutParams(-1, dp(60)).apply { bottomMargin = dp(9) })
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         page.addViewSafely(list)
         search.addTextChangedListener(object: TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { refreshList() }
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { searchSubmitted = false; refreshList() }
             override fun afterTextChanged(s: Editable?) {}
         })
 
@@ -565,6 +575,15 @@ class MainActivity : Activity() {
         })
 
         search = field("عنوان")
+        search.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+        search.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                searchSubmitted = true
+                (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).hideSoftInputFromWindow(search.windowToken, 0)
+                refreshList()
+                true
+            } else false
+        }
         page.addViewSafely(search, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(12) })
         val results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         page.addViewSafely(results)

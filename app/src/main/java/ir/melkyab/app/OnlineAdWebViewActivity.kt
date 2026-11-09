@@ -115,49 +115,68 @@ class OnlineAdWebViewActivity : Activity() {
     private fun extractKashanoResults() {
         val script = """
             (function() {
-              try {
-                const norm = s => (s || '').replace(/[\\u200c\\u200f\\u202a-\\u202e]/g, ' ').replace(/\\s+/g, ' ').trim();
-                const anchors = Array.from(document.querySelectorAll('a[href]'));
-                const found = [];
-                const seen = new Set();
-                const excluded = /(^|\\/)(contact|contact-us|about|about-us|privacy|privacy-policy|terms|terms-and-conditions|rules|login|register|signup|faq|help|blog|news|advertise|advertising|support)(\\/|$)/i;
-                const propertyWords = /(متر|متری|خواب|خوابه|فروش|رهن|اجاره|آپارتمان|خانه|ملک|ویلایی|ویلا|مسکونی|تجاری|واحد|طبقه|ودیعه|قیمت)/;
-                const priceWords = /(تومان|میلیارد|میلیون|ودیعه|قیمت|پیش)/;
-                const numericPrice = /[\\d۰-۹٠-٩][\\d۰-۹٠-٩.,٬،\\s]*(?:تومان|میلیارد|میلیون)/;
-                for (const a of anchors) {
-                  let u;
-                  try { u = new URL(a.getAttribute('href'), location.href); } catch(e) { continue; }
-                  if (!/(^|\\.)kashano\\.ir$/i.test(u.hostname)) continue;
-                  if (u.protocol !== 'http:' && u.protocol !== 'https:') continue;
-                  if (excluded.test(u.pathname)) continue;
-                  if (u.pathname === '/' || u.pathname === '') continue;
-                  const href = u.href.split('#')[0];
-                  if (seen.has(href)) continue;
-                  let card = null;
-                  for (let node = a, depth = 0; node && depth < 9; node = node.parentElement, depth++) {
-                    const t = norm(node.innerText || node.textContent);
-                    if (t.length < 18 || t.length > 1400) continue;
-                    const hasProperty = propertyWords.test(t);
-                    const hasPrice = priceWords.test(t) || numericPrice.test(t);
-                    const hasVisualCard = !!node.querySelector('img, picture, h1, h2, h3, h4, [class*=card], [class*=Card], [class*=title], [class*=Title]');
-                    if (hasVisualCard && (hasProperty || hasPrice)) { card = node; break; }
-                  }
-                  if (!card) continue;
-                  const text = norm(card.innerText || card.textContent);
-                  if (!text || text.length > 1400) continue;
-                  const img = card.querySelector('img, picture img');
-                  const titleNode = card.querySelector('h1,h2,h3,h4,[class*=title],[class*=Title]');
-                  let title = norm(titleNode ? titleNode.innerText : (a.innerText || ''));
-                  if (!title || title.length < 3) title = text.split(' ').slice(0, 14).join(' ');
-                  const price = (text.match(/[\\d۰-۹٠-٩][\\d۰-۹٠-٩.,٬،\\s]*(?:تومان|میلیارد|میلیون)/) || [''])[0];
-                  const imageUrl = img ? (img.currentSrc || img.src || img.getAttribute('data-src') || '') : '';
-                  if (!propertyWords.test(text) && !priceWords.test(text) && !numericPrice.test(text)) continue;
-                  seen.add(href);
-                  found.push({title:title.slice(0,180), summary:text.slice(0,900), price:price, image:imageUrl, url:href});
-                  if (found.length >= 80) break;
+              const clean = s => (s || '').replace(/[\u200c\u200f\u202a-\u202e]/g, ' ').replace(/\s+/g, ' ').trim();
+              const propertyWords = /(متر|متری|خواب|خوابه|فروش|رهن|اجاره|آپارتمان|خانه|ملک|ویلایی|ویلا|مسکونی|تجاری|واحد|طبقه|ودیعه|قیمت)/i;
+              const priceWords = /(تومان|میلیارد|میلیون|ودیعه|قیمت|پیش)/i;
+              const numeric = /[0-9۰-۹٠-٩][0-9۰-۹٠-٩.,٬،\s]*(?:تومان|میلیارد|میلیون)/i;
+              const excluded = /(^|\/)(contact|contact-us|about|about-us|privacy|privacy-policy|terms|terms-and-conditions|rules|login|register|signup|faq|help|blog|news|advertise|advertising|support)(\/|$)/i;
+              const selectors = 'a[href], [onclick], [ng-click], [role="link"], article, li, [class*="card"], [class*="Card"], [class*="item"], [class*="Item"], [class*="listing"], [class*="property"], [class*="estate"], [class*="result"], [data-id]';
+              const seeds = Array.from(document.querySelectorAll(selectors));
+              const found = [], seen = new Set();
+              let anchorsSeen = 0, candidatesSeen = 0;
+              function getUrl(node) {
+                const a = node.matches && node.matches('a[href]') ? node : node.querySelector('a[href]');
+                let raw = a ? a.getAttribute('href') : '';
+                if (!raw) {
+                  const click = (node.getAttribute && (node.getAttribute('onclick') || node.getAttribute('ng-click'))) || '';
+                  const m = click.match(/(?:location\.href|window\.open|navigateTo|goTo)\s*\(?\s*['"]([^'"]+)['"]/i);
+                  if (m) raw = m[1];
                 }
-                return JSON.stringify({url:location.href, items:found});
-              } catch(e) { return JSON.stringify({error:String(e),url:location.href,items:[]}); }
+                if (!raw || raw.startsWith('#') || /^javascript:/i.test(raw)) return '';
+                try {
+                  const u = new URL(raw, location.href);
+                  if (!/^https?:$/.test(u.protocol) || !/(^|\.)kashano\.ir$/i.test(u.hostname) || excluded.test(u.pathname)) return '';
+                  if (u.pathname === '/' || u.pathname === '') return '';
+                  return u.href.split('#')[0];
+                } catch(e) { return ''; }
+              }
+              for (const seed of seeds) {
+                if (seed.matches('a[href]')) anchorsSeen++;
+                let card = null, node = seed;
+                for (let depth=0; node && depth<7; depth++, node=node.parentElement) {
+                  const t = clean(node.innerText || node.textContent);
+                  if (t.length < 28 || t.length > 1100) continue;
+                  if (!propertyWords.test(t) && !priceWords.test(t) && !numeric.test(t)) continue;
+                  const u = getUrl(node);
+                  if (!u) continue;
+                  const visual = node.querySelector('img, picture, h1, h2, h3, h4') || node.matches('article,li,[class*="card"],[class*="item"],[class*="listing"],[class*="property"],[class*="estate"]');
+                  if (visual || node.matches('a[href],[onclick],[ng-click],[role="link"]')) { card=node; break; }
+                }
+                if (!card) continue;
+                candidatesSeen++;
+                const url = getUrl(card);
+                if (!url || seen.has(url)) continue;
+                const bodyText = clean(card.innerText || card.textContent);
+                if (bodyText.length < 28 || bodyText.length > 1100) continue;
+                const img = card.querySelector('img');
+                const heading = card.querySelector('h1,h2,h3,h4,[class*="title"],[class*="Title"]');
+                let title = clean(heading ? heading.innerText : '');
+                if (!title) {
+                  const lines = bodyText.split(/[\n|•]/).map(clean).filter(Boolean);
+                  title = lines.find(x => x.length > 5 && x.length < 140 && !numeric.test(x)) || bodyText.slice(0,140);
+                }
+                const price = (bodyText.match(/[0-9۰-۹٠-٩][0-9۰-۹٠-٩.,٬،\s]*(?:تومان|میلیارد|میلیون)/i) || [''])[0];
+                const imageUrl = img ? (img.currentSrc || img.src || img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || '') : '';
+                seen.add(url);
+                found.push({title:title.slice(0,180), summary:bodyText.slice(0,850), price:price, image:imageUrl, url:url});
+                if (found.length >= 80) break;
+              }
+              return JSON.stringify({
+                url:location.href,
+                items:found,
+                debug:{title:document.title, anchors:anchorsSeen, domSeeds:seeds.length, candidates:candidatesSeen,
+                  body:clean(document.body ? document.body.innerText : '').slice(0,700)}
+              });
             })();
         """.trimIndent()
         webView.evaluateJavascript(script) { value ->
@@ -166,7 +185,11 @@ class OnlineAdWebViewActivity : Activity() {
                 val result = JSONObject(decoded ?: "{}")
                 val items = result.optJSONArray("items") ?: JSONArray()
                 if (items.length() == 0) {
-                    Toast.makeText(this, "آگهی معتبری در صفحه شناسایی نشد؛ صفحه فهرست آگهی‌ها را باز کن و دوباره بزن.", Toast.LENGTH_LONG).show()
+                    val debug = result.optJSONObject("debug")
+                    val body = debug?.optString("body").orEmpty().take(260)
+                    val anchors = debug?.optInt("anchors", 0) ?: 0
+                    val seeds = debug?.optInt("domSeeds", 0) ?: 0
+                    Toast.makeText(this, "آگهی پیدا نشد؛ لینک‌ها: $anchors، عناصر صفحه: $seeds. متن صفحه: $body", Toast.LENGTH_LONG).show()
                     return@evaluateJavascript
                 }
                 val payload = Intent().putExtra(RESULT_KASHANO_ADS, items.toString())
@@ -178,7 +201,6 @@ class OnlineAdWebViewActivity : Activity() {
             }
         }
     }
-
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (::webView.isInitialized && webView.canGoBack()) webView.goBack() else super.onBackPressed()

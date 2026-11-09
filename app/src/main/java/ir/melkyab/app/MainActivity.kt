@@ -114,13 +114,13 @@ class MainActivity : Activity() {
     private var activeSection: String? = null
     private var systemBackCallback: OnBackInvokedCallback? = null
     // ملک‌یاب visual identity: deep midnight navy, warm ivory and refined antique gold.
-    private val navy = Color.rgb(20, 35, 58)
-    private val blue = Color.rgb(157, 119, 57)
-    private val pale = Color.rgb(246, 243, 235)
-    private val muted = Color.rgb(112, 111, 105)
-    private val gold = Color.rgb(194, 157, 91)
-    private val ink = Color.rgb(35, 48, 67)
-    private val softGold = Color.rgb(248, 241, 224)
+    private val navy = Color.rgb(28, 43, 57)
+    private val blue = Color.rgb(36, 119, 124)
+    private val pale = Color.rgb(239, 243, 240)
+    private val muted = Color.rgb(105, 119, 121)
+    private val gold = Color.rgb(205, 126, 83)
+    private val ink = Color.rgb(34, 54, 61)
+    private val softGold = Color.rgb(232, 243, 239)
 
     private fun choosePhotos() {
         val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -334,7 +334,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10),dp(7),dp(10),0)
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(250,248,242), Color.rgb(238,232,218), Color.rgb(246,243,235)))
+                intArrayOf(Color.rgb(239,246,244), Color.rgb(225,237,235), Color.rgb(248,245,239)))
         }
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -380,7 +380,7 @@ class MainActivity : Activity() {
         val searchPanel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(9),dp(5),dp(9),dp(5))
-            background = rounded(Color.WHITE,18,Color.rgb(226,211,181))
+            background = rounded(Color.WHITE,24,Color.rgb(196,218,213))
             elevation = dp(2).toFloat()
         }
         search = field("عنوان")
@@ -442,19 +442,19 @@ class MainActivity : Activity() {
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             pair.forEach { category ->
                 val accent = when(category) {
-                    "فروش" -> Color.rgb(172,126,57)
-                    "رهن" -> Color.rgb(61,105,112)
-                    "رهن و اجاره" -> Color.rgb(91,104,145)
-                    else -> Color.rgb(117,91,66)
+                    "فروش" -> Color.rgb(194,111,72)
+                    "رهن" -> Color.rgb(37,132,126)
+                    "رهن و اجاره" -> Color.rgb(91,119,157)
+                    else -> Color.rgb(125,104,82)
                 }
                 val tile = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
                     setPadding(dp(5),dp(3),dp(5),dp(3))
                     background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                        intArrayOf(Color.WHITE, Color.rgb(247,243,233))).apply {
-                        cornerRadius = dp(20).toFloat()
-                        setStroke(dp(1), Color.rgb(224,211,184))
+                        intArrayOf(Color.WHITE, Color.rgb(235,245,242))).apply {
+                        cornerRadius = dp(25).toFloat()
+                        setStroke(dp(1), Color.rgb(193,216,209))
                     }
                     elevation = dp(5).toFloat()
                     isClickable = true
@@ -462,10 +462,10 @@ class MainActivity : Activity() {
                     setOnClickListener { activeSection = category; dealFilter = "همه"; renderSection() }
                 }
                 val symbol = when(category) {
-                    "فروش" -> "◇"
+                    "فروش" -> "↗"
                     "رهن" -> "⌂"
-                    "رهن و اجاره" -> "▤"
-                    else -> "⌑"
+                    "رهن و اجاره" -> "⇄"
+                    else -> "▦"
                 }
                 val iconCircle = TextView(this).apply {
                     text = symbol
@@ -756,12 +756,12 @@ class MainActivity : Activity() {
             normalized.startsWith("رهن") -> "رهن کامل"
             else -> null
         }
-        val amountPattern = Regex("""(?<!\\d)(\\d{1,3}(?:[.,٬]\\d{3})+|\\d+(?:[.,]\\d+)?)\\s*(میلیارد|میلیون|هزار)?""")
+        val amountPattern = Regex("""(?<!\d)(\d{1,3}(?:[.,٬]\d{3})+|\d+(?:[.,]\d+)?)\s*(میلیارد|میلیون|هزار)?""")
         val amountTokens = amountPattern.findAll(queryBody).toList()
         val textWords = queryBody.replace(amountPattern, " ")
-            .split(Regex("""[\\s,،٬]+"""))
+            .split(Regex("""[\s,،٬]+"""))
             .filter { it.isNotBlank() && it !in listOf("تا","حدود","قیمت","متر","متراژ","تومان","تومن","میلیارد","میلیون","هزار","پیش") }
-        val bareBudget = queryBody.matches(Regex("""\\d+"""))
+        val bareBudget = queryBody.matches(Regex("""\d+"""))
         val bareBudgetValue = if (bareBudget) queryBody.toLongOrNull() else null
         val found = allItems.filter { p ->
             val searchable = listOf(
@@ -791,15 +791,15 @@ class MainActivity : Activity() {
                         (explicitDeal == null && listOf(p.area,p.floor,p.buildingFloors,p.unitsPerFloor,p.unitCount).any { rawMoney(it).contains(queryBody) })
                 }
                 amountTokens.isNotEmpty() -> amountTokens.all { token ->
-                    val numericText = token.groupValues[1].replace(Regex("[.,٬]"), "")
-                    val numeric = numericText.toLongOrNull() ?: 0L
+                    val numericText = token.groupValues[1].replace(",", ".").replace("٬", "")
+                    val numeric = numericText.toDoubleOrNull() ?: 0.0
                     val multiplier = when (token.groupValues[2]) {
-                        "میلیارد" -> 1_000_000_000L
-                        "میلیون" -> 1_000_000L
-                        "هزار" -> 1_000L
-                        else -> 1L
+                        "میلیارد" -> 1_000_000_000.0
+                        "میلیون" -> 1_000_000.0
+                        "هزار" -> 1_000.0
+                        else -> 1.0
                     }
-                    val budget = if (numeric > Long.MAX_VALUE / multiplier) Long.MAX_VALUE else numeric * multiplier
+                    val budget = numeric * multiplier
                     val before = queryBody.substring(0, token.range.first)
                     val values = when {
                         before.contains("اجاره") -> listOf(rawMoney(p.rent).toLongOrNull() ?: 0L)
@@ -807,8 +807,11 @@ class MainActivity : Activity() {
                         before.contains("فروش") || before.contains("قیمت") -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
                         else -> relevantMoneyValues()
                     }.filter { it > 0L }
-                    val isCeiling = multiplier > 1L || before.contains("تا") || (multiplier == 1L && numericText.length <= 3)
-                    values.any { if (isCeiling) it <= budget else it == budget }
+                    val isCeiling = multiplier > 1.0 || before.contains("تا") || (multiplier == 1.0 && numericText.length <= 3)
+                    values.any { value ->
+                        (if (isCeiling) value.toDouble() <= budget else value.toDouble() == budget) ||
+                            (explicitDeal == null && value.toString().contains(numericText.replace(".", "")))
+                    }
                 }
                 else -> true
             }
@@ -1057,7 +1060,12 @@ class MainActivity : Activity() {
                     scales.forEach { scale ->
                         val amount = if (typed > Long.MAX_VALUE / scale) Long.MAX_VALUE else typed * scale
                         val label = when {
-                            amount % 1_000_000_000L == 0L -> formatMoney((amount / 1_000_000_000L).toString()) + " میلیارد"
+                            amount >= 1_000_000_000L -> {
+                                val billions = amount / 1_000_000_000L
+                                val remainder = amount % 1_000_000_000L
+                                val decimal = if (remainder == 0L) "" else "." + (remainder / 100_000_000L).toString()
+                                formatMoney(billions.toString()) + decimal + " میلیارد"
+                            }
                             amount % 1_000_000L == 0L -> formatMoney((amount / 1_000_000L).toString()) + " میلیون"
                             else -> formatMoney(amount.toString())
                         }

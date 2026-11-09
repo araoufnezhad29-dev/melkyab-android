@@ -865,13 +865,16 @@ class MainActivity : Activity() {
             resultList.removeAllViews()
             searchButton.isEnabled = false
             Thread {
-                val ads = try { DivarOnlineSearch.search(categoryPath, queryText) } catch (_: Exception) { emptyList() }
+                val ads = buildList {
+                    try { addAll(DivarOnlineSearch.search(categoryPath, queryText)) } catch (_: Exception) {}
+                    try { addAll(SheypoorOnlineSearch.search(queryText)) } catch (_: Exception) {}
+                }.distinctBy { it.url }.take(50)
                 runOnUiThread {
                     searchButton.isEnabled = true
                     resultList.removeAllViews()
-                    resultTitle.text = if (ads.isEmpty()) "آگهی قابل دریافت پیدا نشد" else "تعداد آگهی‌های دریافت‌شده: " + persianDigits(ads.size.toString())
+                    resultTitle.text = if (ads.isEmpty()) "آگهی قابل دریافت پیدا نشد" else "تعداد آگهی‌های دریافت‌شده از دیوار و شیپور: " + persianDigits(ads.size.toString())
                     if (ads.isEmpty()) {
-                        resultList.addView(text("ممکن است دیوار دسترسی خودکار را محدود کرده باشد یا نتیجه‌ای برای این جست‌وجو موجود نباشد. دوباره با عبارت ساده‌تر امتحان کن.", 12f, muted))
+                        resultList.addView(text("ممکن است سایت‌ها دسترسی خودکار را محدود کرده باشند یا نتیجه‌ای برای این جست‌وجو موجود نباشد. دوباره با عبارت ساده‌تر امتحان کن. اتصال کارت‌های کاشانو هنوز آماده نیست.", 12f, muted))
                     } else {
                         ads.forEach { ad ->
                             val card = LinearLayout(this).apply {
@@ -900,7 +903,7 @@ class MainActivity : Activity() {
                             details.addViewSafely(text(ad.title, 13f, navy, true))
                             if (ad.price.isNotBlank()) details.addViewSafely(text(ad.price, 12f, blue, true))
                             if (ad.summary.isNotBlank()) details.addViewSafely(text(ad.summary, 10f, muted).apply { maxLines = 2 })
-                            details.addViewSafely(text("مشاهده آگهی اصلی داخل ملک‌یاب", 10f, muted))
+                            details.addViewSafely(text("منبع: " + ad.source + "  ·  مشاهده آگهی اصلی داخل ملک‌یاب", 10f, muted))
                             card.addViewSafely(details, LinearLayout.LayoutParams(0, -2, 1f))
                             resultList.addViewSafely(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
                             if (ad.imageUrl.isNotBlank()) Thread {

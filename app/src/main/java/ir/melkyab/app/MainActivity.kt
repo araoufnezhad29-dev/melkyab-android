@@ -809,16 +809,42 @@ class MainActivity : Activity() {
         panel.addViewSafely(searchButton, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         page.addViewSafely(panel, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
         page.addViewSafely(text("نتایج جست‌وجو", 16f, navy, true))
-        page.addViewSafely(text("نتایج به‌صورت کارت‌های اختصاصی داخل ملک‌یاب نمایش داده می‌شوند؛ بدون بازشدن گوگل یا مرورگر.", 11f, muted))
+        page.addViewSafely(text("نتایج گوگل داخل خود ملک‌یاب باز می‌شود؛ با انتخاب هر آگهی، صفحه دیوار هم در همین بخش باز خواهد شد.", 11f, muted))
         val resultSummary = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(14), dp(14), dp(14), dp(14))
+            setPadding(dp(10), dp(10), dp(10), dp(10))
             background = rounded(Color.WHITE, 18, Color.rgb(211,222,232))
         }
-        val resultTitle = text("هنوز جست‌وجویی انجام نشده", 15f, navy, true)
-        val resultMessage = text("فیلترها را انتخاب کن و دکمه جست‌وجو را بزن.", 12f, muted)
+        val resultTitle = text("آماده جست‌وجو", 14f, navy, true)
         resultSummary.addViewSafely(resultTitle, LinearLayout.LayoutParams(-1, -2))
-        resultSummary.addViewSafely(resultMessage, LinearLayout.LayoutParams(-1, -2))
+        val webView = android.webkit.WebView(this).apply {
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.loadsImagesAutomatically = true
+            settings.javaScriptCanOpenWindowsAutomatically = false
+            settings.setSupportMultipleWindows(false)
+            webViewClient = object : android.webkit.WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                    return false
+                }
+                @Suppress("DEPRECATION")
+                override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, url: String?): Boolean {
+                    return false
+                }
+            }
+            isVerticalScrollBarEnabled = true
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_MOVE ->
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
+                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                }
+                false
+            }
+        }
+        resultSummary.addViewSafely(webView, LinearLayout.LayoutParams(-1, dp(520)).apply { topMargin = dp(8) })
         page.addViewSafely(resultSummary, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
         searchButton.setOnClickListener {
             val dealText = deal.selectedItem.toString()
@@ -852,8 +878,9 @@ class MainActivity : Activity() {
                 else -> "(site:divar.ir OR site:sheypoor.com OR site:kashano.ir OR site:zoomila.com OR site:kilid.com OR site:ganje.ir)"
             }
             val queryText = "$sites ${terms.filter { it.isNotBlank() }.joinToString(" ")} آگهی ملک"
-            resultTitle.text = "فیلترهای جست‌وجو ثبت شد"
-            resultMessage.text = "تهران · ${district.text.ifBlank { "همه محله‌ها" }} · ${deal.selectedItem} · ${kind.selectedItem}\nمنبع انتخابی: $selectedSource\n\nبرای دریافت و نمایش آگهی‌های واقعی در این کارت‌ها، باید سرویس جست‌وجوی دارای دسترسی مجاز متصل شود. در حال حاضر API رسمی/کلید جست‌وجو در پروژه تعریف نشده؛ بنابراین هیچ آگهی ساختگی نمایش داده نمی‌شود.\n\nعبارت جست‌وجوی آماده: $queryText"
+            resultTitle.text = "نتایج برای: ${district.text.ifBlank { "همه محله‌های تهران" }} · $dealText"
+            val searchUrl = "https://www.google.com/search?q=" + Uri.encode(queryText)
+            webView.loadUrl(searchUrl)
             (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
                 .hideSoftInputFromWindow(searchButton.windowToken, 0)
         }

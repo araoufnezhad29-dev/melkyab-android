@@ -14,6 +14,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.graphics.Color
 import android.view.ViewGroup
+import android.view.MotionEvent
 
 class OnlineAdWebViewActivity : Activity() {
     companion object { const val EXTRA_URL = "online_ad_url" }
@@ -53,10 +54,29 @@ class OnlineAdWebViewActivity : Activity() {
         val progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
         }
-        webView = WebView(this)
+        webView = WebView(this).apply {
+            isVerticalScrollBarEnabled = true
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+            isFocusable = true
+            isFocusableInTouchMode = true
+            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+            // Keep touch gestures inside the web page so the ad can scroll naturally.
+            setOnTouchListener { view, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE ->
+                        view.parent?.requestDisallowInterceptTouchEvent(true)
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                        view.parent?.requestDisallowInterceptTouchEvent(false)
+                }
+                false
+            }
+        }
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
         webView.settings.loadsImagesAutomatically = true
+        webView.settings.useWideViewPort = true
+        webView.settings.loadWithOverviewMode = false
         webView.settings.javaScriptCanOpenWindowsAutomatically = false
         webView.settings.setSupportMultipleWindows(false)
         webView.webChromeClient = object : WebChromeClient() {
@@ -73,7 +93,9 @@ class OnlineAdWebViewActivity : Activity() {
         }
         root.addView(header, LinearLayout.LayoutParams(-1, -2))
         root.addView(progress, LinearLayout.LayoutParams(-1, 3))
-        root.addView(webView, LinearLayout.LayoutParams(-1, 0, 1f))
+        root.addView(webView, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
+        ))
         setContentView(root)
         webView.loadUrl(uri.toString())
     }

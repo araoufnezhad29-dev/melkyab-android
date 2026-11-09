@@ -231,6 +231,23 @@ class MainActivity : Activity() {
         if (ch in '0'..'9') ('۰'.code + ch.code - '0'.code).toChar() else ch
     }.joinToString("")
 
+    // Compact suggestion label, always Persian digits; amount remains the exact toman value.
+    private fun compactMoneyLabel(amount: Long): String {
+        if (amount >= 1_000_000_000L) {
+            val whole = amount / 1_000_000_000L
+            val decimalDigit = (amount % 1_000_000_000L) / 100_000_000L
+            val decimal = if (decimalDigit == 0L) "" else "." + decimalDigit.toString()
+            return persianDigits(formatMoney(whole.toString()) + decimal) + " میلیارد"
+        }
+        if (amount >= 1_000_000L && amount % 1_000_000L == 0L) {
+            return formatMoney((amount / 1_000_000L).toString()) + " میلیون"
+        }
+        return formatMoney(amount.toString())
+    }
+
+    private fun scaledSuggestionAmount(seed: Long, scale: Long): Long =
+        if (seed > Long.MAX_VALUE / scale) Long.MAX_VALUE else seed * scale
+
     private fun moneyField(hint: String, value: String): EditText {
         val e = field(hint, formatMoney(value))
         e.inputType = InputType.TYPE_CLASS_NUMBER
@@ -765,17 +782,8 @@ class MainActivity : Activity() {
             list.addViewSafely(text("جست‌وجو بر اساس بودجه",10f,muted,true))
             list.addViewSafely(horizontal,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
             scales.forEach { scale ->
-                val amount = if (digit > Long.MAX_VALUE / scale) Long.MAX_VALUE else digit * scale
-                val label = when {
-                    amount >= 1_000_000_000L -> {
-                        val whole = amount / 1_000_000_000L
-                        val remainder = amount % 1_000_000_000L
-                        val decimal = if (remainder == 0L) "" else "." + persianDigits((remainder / 100_000_000L).toString())
-                        formatMoney(whole.toString()) + decimal + " میلیارد"
-                    }
-                    amount % 1_000_000L == 0L -> formatMoney((amount / 1_000_000L).toString()) + " میلیون"
-                    else -> formatMoney(amount.toString())
-                }
+                val amount = scaledSuggestionAmount(digit, scale)
+                val label = compactMoneyLabel(amount)
                 val chip = TextView(this).apply {
                     text = label; textSize = 10f; setTextColor(blue); gravity = Gravity.CENTER
                     setPadding(dp(9),dp(7),dp(9),dp(7))
@@ -1074,23 +1082,14 @@ class MainActivity : Activity() {
                 override fun afterTextChanged(s: Editable?) {
                     val rawTyped = s?.toString() ?: ""
                     val typedDigits = rawMoney(rawTyped)
-                    val typed = parseSuggestionSeed(rawTyped)
+                    val seed = typedDigits.toLongOrNull() ?: 0L
                     suggestions.removeAllViews()
-                    if (typedDigits.length !in 1..3 || typed <= 0.0) { block.visibility = View.GONE; return }
+                    if (typedDigits.length !in 1..3 || seed <= 0L) { block.visibility = View.GONE; return }
                     block.visibility = View.VISIBLE
                     val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
                     scales.forEach { scale ->
-                        val amount = (typed * scale.toDouble()).coerceAtMost(Long.MAX_VALUE.toDouble()).toLong()
-                        val label = when {
-                            amount >= 1_000_000_000L -> {
-                                val billions = amount / 1_000_000_000L
-                                val remainder = amount % 1_000_000_000L
-                                val decimal = if (remainder == 0L) "" else "." + (remainder / 100_000_000L).toString()
-                                formatMoney(billions.toString()) + decimal + " میلیارد"
-                            }
-                            amount % 1_000_000L == 0L -> formatMoney((amount / 1_000_000L).toString()) + " میلیون"
-                            else -> formatMoney(amount.toString())
-                        }
+                        val amount = scaledSuggestionAmount(seed, scale)
+                        val label = compactMoneyLabel(amount)
                         val chip = TextView(this@MainActivity).apply {
                             text = label
                             textSize = 10f
@@ -1101,7 +1100,8 @@ class MainActivity : Activity() {
                             isClickable = true
                             isFocusable = true
                             setOnClickListener {
-                                target.setText(formatMoney(amount.toString()))
+                                // Store the exact toman amount, not the compact billion/million label.
+                                target.setText(amount.toString())
                                 target.setSelection(target.text.length)
                             }
                         }

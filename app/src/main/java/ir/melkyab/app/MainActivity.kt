@@ -927,15 +927,16 @@ class MainActivity : Activity() {
                     try {
                         val filtersForSearch = org.json.JSONObject(divarFilters.toString())
                         val chosenDistrict = chosenDistrictForSearch
-                        if (chosenDistrict.isNotBlank()) {
-                            val resolvedDistrictId = DivarOnlineSearch.districtId(chosenDistrict)
-                            if (!resolvedDistrictId.isNullOrBlank()) {
-                                filtersForSearch.put("districts", org.json.JSONObject().put("repeated_string",
-                                    org.json.JSONObject().put("value", org.json.JSONArray().put(resolvedDistrictId))))
-                            }
+                        val resolvedDistrictId = if (chosenDistrict.isBlank()) null else DivarOnlineSearch.districtId(chosenDistrict)
+                        if (!resolvedDistrictId.isNullOrBlank()) {
+                            filtersForSearch.put("districts", org.json.JSONObject().put("repeated_string",
+                                org.json.JSONObject().put("value", org.json.JSONArray().put(resolvedDistrictId))))
                         }
                         val divarAds = DivarOnlineSearch.search(categoryPath, queryText, filtersForSearch)
-                        addAll(divarAds)
+                        if (chosenDistrict.isBlank() || !resolvedDistrictId.isNullOrBlank()) addAll(divarAds)
+                        else addAll(divarAds.filter {
+                            (it.title + " " + it.summary).contains(chosenDistrict, ignoreCase = true)
+                        })
                     } catch (_: Exception) {}
                     try { addAll(SheypoorOnlineSearch.search(queryText)) } catch (_: Exception) {}
                 }.distinctBy { it.url }.take(50)

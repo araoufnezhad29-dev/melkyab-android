@@ -817,40 +817,14 @@ class MainActivity : Activity() {
         }
         val resultTitle = text("آماده جست‌وجو", 14f, navy, true)
         resultSummary.addViewSafely(resultTitle, LinearLayout.LayoutParams(-1, -2))
-        val webView = android.webkit.WebView(this).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.loadsImagesAutomatically = true
-            settings.javaScriptCanOpenWindowsAutomatically = false
-            settings.setSupportMultipleWindows(false)
-            webViewClient = object : android.webkit.WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, request: android.webkit.WebResourceRequest?): Boolean {
-                    return false
-                }
-                @Suppress("DEPRECATION")
-                override fun shouldOverrideUrlLoading(view: android.webkit.WebView?, url: String?): Boolean {
-                    return false
-                }
-            }
-            isVerticalScrollBarEnabled = true
-            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
-            setOnTouchListener { v, event ->
-                when (event.action) {
-                    android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_MOVE ->
-                        v.parent?.requestDisallowInterceptTouchEvent(true)
-                    android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL ->
-                        v.parent?.requestDisallowInterceptTouchEvent(false)
-                }
-                false
-            }
-        }
-        resultSummary.addViewSafely(webView, LinearLayout.LayoutParams(-1, dp(520)).apply { topMargin = dp(8) })
+        val resultList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        resultSummary.addViewSafely(resultList, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
         page.addViewSafely(resultSummary, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
         searchButton.setOnClickListener {
             val dealText = deal.selectedItem.toString()
-            val terms = mutableListOf("تهران", district.text.toString(), kind.selectedItem.toString())
+            val terms = mutableListOf(district.text.toString(), kind.selectedItem.toString())
             terms.add(when (dealText) {
-                "فروش" -> "فروش خرید"
+                "فروش" -> "فروش"
                 "رهن" -> "رهن کامل"
                 else -> "رهن و اجاره"
             })
@@ -870,17 +844,70 @@ class MainActivity : Activity() {
             if (parking.selectedItemPosition != 0) terms.add("پارکینگ " + parking.selectedItem)
             if (storage.selectedItemPosition != 0) terms.add("انباری " + storage.selectedItem)
             if (elevator.selectedItemPosition != 0) terms.add("آسانسور " + elevator.selectedItem)
-            val sites = when (selectedSource) {
-                "دیوار" -> "site:divar.ir/v"
-                "شیپور" -> "site:sheypoor.com"
-                "کاشانو" -> "site:kashano.ir"
-                "سایر سایت‌ها" -> "(site:zoomila.com OR site:kilid.com OR site:ganje.ir OR site:melk20.com)"
-                else -> "(site:divar.ir OR site:sheypoor.com OR site:kashano.ir OR site:zoomila.com OR site:kilid.com OR site:ganje.ir)"
+            val categoryPath = when (kind.selectedItemPosition) {
+                1 -> if (deal.selectedItemPosition == 0) "buy-villa" else "rent-villa"
+                2 -> if (deal.selectedItemPosition == 0) "buy-old-house" else "rent-old-house"
+                3 -> if (deal.selectedItemPosition == 0) "buy-commercial" else "rent-commercial"
+                else -> if (deal.selectedItemPosition == 0) "buy-apartment" else "rent-apartment"
             }
-            val queryText = "$sites ${terms.filter { it.isNotBlank() }.joinToString(" ")} آگهی ملک"
-            resultTitle.text = "نتایج برای: ${district.text.ifBlank { "همه محله‌های تهران" }} · $dealText"
-            val searchUrl = "https://www.google.com/search?q=" + Uri.encode(queryText)
-            webView.loadUrl(searchUrl)
+            val queryText = terms.filter { it.isNotBlank() }.joinToString(" ")
+            resultTitle.text = "در حال دریافت آگهی‌های واقعی دیوار…"
+            resultList.removeAllViews()
+            searchButton.isEnabled = false
+            Thread {
+                val ads = try { DivarOnlineSearch.search(categoryPath, queryText) } catch (_: Exception) { emptyList() }
+                runOnUiThread {
+                    searchButton.isEnabled = true
+                    resultList.removeAllViews()
+                    resultTitle.text = if (ads.isEmpty()) "آگهی قابل دریافت پیدا نشد" else "تعداد آگهی‌های دریافت‌شده: " + persianDigits(ads.size.toString())
+                    if (ads.isEmpty()) {
+                        resultList.addView(text("ممکن است دیوار دسترسی خودکار را محدود کرده باشد یا نتیجه‌ای برای این جست‌وجو موجود نباشد. دوباره با عبارت ساده‌تر امتحان کن.", 12f, muted))
+                    } else {
+                        ads.forEach { ad ->
+                            val card = LinearLayout(this).apply {
+                                orientation = LinearLayout.HORIZONTAL
+                                gravity = Gravity.CENTER_VERTICAL
+                                setPadding(dp(8), dp(8), dp(8), dp(8))
+                                background = rounded(Color.rgb(250,252,255), 14, Color.rgb(218,226,234))
+                                isClickable = true
+                                isFocusable = true
+                                setOnClickListener {
+                                    val uri = Uri.parse(ad.url)
+                                    try {
+                                        startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri).setPackage("com.android.chrome"))
+                                    } catch (_: Exception) {
+                                        try { startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri)) }
+                                        catch (_: Exception) { Toast.makeText(this@MainActivity, "مرورگر در دسترس نیست", Toast.LENGTH_SHORT).show() }
+                                    }
+                                }
+                            }
+                            val image = ImageView(this).apply {
+                                scaleType = ImageView.ScaleType.CENTER_CROP
+                                background = rounded(Color.rgb(235,239,243), 10)
+                            }
+                            card.addViewSafely(image, LinearLayout.LayoutParams(dp(104), dp(96)).apply { marginEnd = dp(9) })
+                            val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+                            details.addViewSafely(text(ad.title, 13f, navy, true))
+                            if (ad.price.isNotBlank()) details.addViewSafely(text(ad.price, 12f, blue, true))
+                            if (ad.summary.isNotBlank()) details.addViewSafely(text(ad.summary, 10f, muted).apply { maxLines = 2 })
+                            details.addViewSafely(text("منبع: دیوار  ·  مشاهده آگهی در مرورگر", 10f, muted))
+                            card.addViewSafely(details, LinearLayout.LayoutParams(0, -2, 1f))
+                            resultList.addViewSafely(card, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })
+                            if (ad.imageUrl.isNotBlank()) Thread {
+                                val bitmap = try {
+                                    val connection = java.net.URL(ad.imageUrl).openConnection().apply {
+                                        connectTimeout = 10000
+                                        readTimeout = 10000
+                                        setRequestProperty("User-Agent", "Mozilla/5.0")
+                                    }
+                                    connection.getInputStream().use { android.graphics.BitmapFactory.decodeStream(it) }
+                                } catch (_: Exception) { null }
+                                if (bitmap != null) runOnUiThread { image.setImageBitmap(bitmap) }
+                            }.start()
+                        }
+                    }
+                }
+            }.start()
             (getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
                 .hideSoftInputFromWindow(searchButton.windowToken, 0)
         }

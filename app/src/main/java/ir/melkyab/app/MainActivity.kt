@@ -838,7 +838,6 @@ class MainActivity : Activity() {
         panel.addViewSafely(text("منابع دریافت کارت آگهی: دیوار، شیپور و کاشانو", 12f, navy, true))
         panel.addViewSafely(button("جست‌وجو و استخراج آگهی‌های کاشانو", {
             try {
-                kashanoResultHandler = null
                 @Suppress("DEPRECATION")
                 startActivityForResult(android.content.Intent(this@MainActivity, OnlineAdWebViewActivity::class.java)
                     .putExtra(OnlineAdWebViewActivity.EXTRA_URL, "https://kashano.ir/")

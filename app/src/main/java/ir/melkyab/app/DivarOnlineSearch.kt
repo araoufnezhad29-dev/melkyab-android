@@ -24,6 +24,7 @@ object DivarOnlineSearch {
             readTimeout = 18000
             setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/125.0 Mobile Safari/537.36")
             setRequestProperty("Accept", "application/json, text/plain, */*")
+            setRequestProperty("Origin", "https://divar.ir")
             setRequestProperty("Referer", "https://divar.ir/")
         }
         try {
@@ -62,11 +63,14 @@ object DivarOnlineSearch {
             "rent-villa" -> "villa-rent"
             "buy-old-house" -> "old-house-sell"
             "rent-old-house" -> "old-house-rent"
-            "buy-commercial" -> "commercial-sell"
-            "rent-commercial" -> "commercial-rent"
+            "buy-commercial" -> "buy-commercial-property"
+            "rent-commercial" -> "rent-commercial-property"
             "rent-apartment" -> "apartment-rent"
             else -> "apartment-sell"
         }
+
+        // Divar's web search endpoint expects typed form filters and a compact search payload.
+        // Extra UI/map fields can cause the endpoint to reject otherwise valid requests.
         val formData = JSONObject().put("category", JSONObject().put("str", JSONObject().put("value", category)))
         val filterKeys = filters.keys()
         while (filterKeys.hasNext()) {
@@ -74,24 +78,23 @@ object DivarOnlineSearch {
             val value = filters.opt(key)
             if (value != null && value != JSONObject.NULL) formData.put(key, value)
         }
+
+        val searchData = JSONObject()
+            .put("form_data", JSONObject().put("data", formData))
+            .put("server_payload", JSONObject()
+                .put("@type", "type.googleapis.com/widgets.SearchData.ServerPayload")
+                .put("additional_form_data", JSONObject()
+                    .put("data", JSONObject().put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date"))))))
+
         val body = JSONObject()
-            .put("source_view", "FILTER")
-            .put("disable_recommendation", false)
-            .put("map_state", JSONObject().put("camera_info", JSONObject().put("bbox", JSONObject())))
-            .put("page_state", "HALF_STATE")
             .put("city_ids", org.json.JSONArray().put("1"))
-            .put("previous_place_ids", org.json.JSONArray())
-            .put("user_selected_location", JSONObject().put("places", org.json.JSONArray().put(JSONObject().put("place_id", "1"))))
-            .put("previous_user_selected_location", JSONObject().put("places", org.json.JSONArray()))
-            .put("search_data", JSONObject()
-                .put("form_data", JSONObject().put("data", formData))
-                .put("server_payload", JSONObject()
-                    .put("@type", "type.googleapis.com/widgets.SearchData.ServerPayload")
-                    .put("additional_form_data", JSONObject()
-                        .put("data", JSONObject().put("sort", JSONObject().put("str", JSONObject().put("value", "sort_date")))))))
+            .put("source_view", "SEARCH")
+            .put("search_data", searchData)
             .put("pagination_data", JSONObject()
                 .put("@type", "type.googleapis.com/post_list.PaginationData")
-                .put("page", 1))
+                .put("page", 1)
+                .put("layer_page", 1))
+
         val connection = (URL("https://api.divar.ir/v8/postlist/w/search").openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 18000
@@ -99,15 +102,24 @@ object DivarOnlineSearch {
             doOutput = true
             setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/125.0 Mobile Safari/537.36")
             setRequestProperty("Accept", "application/json, text/plain, */*")
+            setRequestProperty("Accept-Language", "fa-IR,fa;q=0.9,en;q=0.8")
             setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("Origin", "https://divar.ir")
             setRequestProperty("Referer", "https://divar.ir/")
-            setRequestProperty("X-Web-Serving-Mode", "desktop")
         }
         try {
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
-            if (connection.responseCode !in 200..299) return emptyList()
-            val json = connection.inputStream.bufferedReader(Charsets.UTF_8).use { JSONObject(it.readText()) }
-            val widgets = json.optJSONArray("list_widgets") ?: return emptyList()
+            val status = connection.responseCode
+            if (status !in 200..299) {
+                val errorText = try {
+                    (connection.errorStream ?: connection.inputStream).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                } catch (_: Exception) { "" }
+                throw IllegalStateException("دیوار پاسخ HTTP $status داد" + if (errorText.isBlank()) "" else ": " + errorText.take(180))
+            }
+
+            val json = JSONObject(connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
+            val widgets = json.optJSONArray("list_widgets")
+                ?: throw IllegalStateException("پاسخ دیوار فاقد فهرست آگهی‌هاست")
             val result = LinkedHashMap<String, DivarOnlineAd>()
             for (i in 0 until widgets.length()) {
                 val widget = widgets.optJSONObject(i) ?: continue

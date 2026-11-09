@@ -729,7 +729,6 @@ class MainActivity : Activity() {
                 }.start()
             }
         }
-        district.setOnFocusChangeListener { _, hasFocus -> if (hasFocus && district.text.isEmpty()) district.showDropDown() }
         panel.addViewSafely(district, LinearLayout.LayoutParams(-1, dp(46)))
         val kind = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
@@ -904,13 +903,14 @@ class MainActivity : Activity() {
                     addDivarRange("rent", rentRange.fields.first, rentRange.fields.second)
                 }
             }
-            if (rooms.selectedItemPosition > 1) {
+            if (rooms.selectedItemPosition > 0) {
                 val roomValues = org.json.JSONArray()
                 val selectedRooms = when (rooms.selectedItemPosition) {
+                    1 -> listOf("بدون اتاق")
                     2 -> listOf("یک")
                     3 -> listOf("دو")
                     4 -> listOf("سه")
-                    else -> listOf("بیشتر")
+                    else -> listOf("چهار", "بیشتر")
                 }
                 selectedRooms.forEach { roomValues.put(it) }
                 divarFilters.put("rooms", org.json.JSONObject().put("repeated_string", org.json.JSONObject().put("value", roomValues)))

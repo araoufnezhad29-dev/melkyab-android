@@ -116,13 +116,13 @@ class MainActivity : Activity() {
     private var systemBackCallback: OnBackInvokedCallback? = null
     private var kashanoResultHandler: ((String) -> Unit)? = null
     // ملک‌یاب visual identity: deep midnight navy, warm ivory and refined antique gold.
-    private val navy = Color.rgb(24, 35, 52)
-    private val blue = Color.rgb(20, 126, 132)
-    private val pale = Color.rgb(239, 244, 247)
-    private val muted = Color.rgb(105, 117, 132)
-    private val gold = Color.rgb(224, 139, 76)
-    private val ink = Color.rgb(31, 43, 59)
-    private val softGold = Color.rgb(231, 242, 243)
+    private val navy = Color.rgb(10, 22, 39)
+    private val blue = Color.rgb(235, 181, 76)
+    private val pale = Color.rgb(15, 29, 48)
+    private val muted = Color.rgb(171, 184, 201)
+    private val gold = Color.rgb(244, 190, 82)
+    private val ink = Color.rgb(239, 234, 220)
+    private val softGold = Color.rgb(35, 47, 65)
 
     private fun choosePhotos() {
         val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -192,20 +192,20 @@ class MainActivity : Activity() {
         this.hint = hint; setText(value); textSize = 15f
         setSingleLine(hint != "توضیحات")
         setPadding(dp(12), dp(10), dp(12), dp(10))
-        background = rounded(Color.rgb(250, 252, 255), 17, Color.rgb(211, 222, 232))
+        background = rounded(Color.rgb(22, 37, 58), 17, Color.rgb(183, 143, 65))
         setTextColor(ink)
-        setHintTextColor(Color.rgb(153, 151, 143))
+        setHintTextColor(Color.rgb(155, 169, 188))
         elevation = dp(1).toFloat()
     }
 
     private fun button(label: String, action: () -> Unit, primary: Boolean = false) = Button(this).apply {
         text = label; textSize = 13f; isAllCaps = false
-        setTextColor(if (primary) Color.WHITE else navy)
+        setTextColor(if (primary) Color.rgb(22, 29, 39) else ink)
         background = if (primary) GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-            intArrayOf(Color.rgb(24,126,132), Color.rgb(16,91,105))).apply {
+            intArrayOf(Color.rgb(255,211,112), Color.rgb(218,151,42))).apply {
                 cornerRadius = dp(14).toFloat()
-                setStroke(dp(1), Color.rgb(116,181,181))
-            } else rounded(Color.rgb(250,252,255), 15, Color.rgb(211,222,232))
+                setStroke(dp(1), Color.rgb(255,224,145))
+            } else rounded(Color.rgb(22,37,58), 15, Color.rgb(126,105,69))
         elevation = dp(if (primary) 3 else 1).toFloat()
         setPadding(dp(8), 0, dp(8), 0)
         setOnClickListener { action() }
@@ -434,6 +434,21 @@ class MainActivity : Activity() {
                     }
                 }
             }
+            // Recognizable Milad Tower silhouette on the right, with a slim shaft and crown.
+            val tx=w*.865f
+            val baseY=h*.925f
+            paint.color=Color.rgb(190,151,82)
+            paint.strokeWidth=dp(2).toFloat()
+            canvas.drawLine(tx, h*.16f, tx, h*.28f, paint)
+            paint.color=Color.rgb(220,181,105)
+            rect.set(tx-dp(2),h*.27f,tx+dp(2),baseY)
+            canvas.drawRoundRect(rect,dp(2).toFloat(),dp(2).toFloat(),paint)
+            rect.set(tx-dp(5),h*.34f,tx+dp(5),h*.40f)
+            canvas.drawRoundRect(rect,dp(3).toFloat(),dp(3).toFloat(),paint)
+            rect.set(tx-dp(8),h*.39f,tx+dp(8),h*.43f)
+            canvas.drawRoundRect(rect,dp(3).toFloat(),dp(3).toFloat(),paint)
+            paint.color=Color.rgb(255,211,125)
+            canvas.drawCircle(tx,h*.35f,dp(2).toFloat(),paint)
             paint.color=Color.rgb(8,21,38); canvas.drawRect(0f,h*.92f,w,h,paint)
             paint.color=Color.argb(190,194,151,82); canvas.drawRect(0f,h*.925f,w,h*.932f,paint)
         }
@@ -500,7 +515,9 @@ class MainActivity : Activity() {
             elevation = dp(2).toFloat()
         }
         search = field("عنوان")
-        search.background = rounded(Color.rgb(241,237,226),13,Color.rgb(190,151,82))
+        search.background = rounded(Color.rgb(20,34,54),13,Color.rgb(205,160,73))
+        search.setTextColor(ink)
+        search.setHintTextColor(muted)
         search.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
         search.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
@@ -761,7 +778,7 @@ class MainActivity : Activity() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), dp(10), dp(12), dp(10))
-            background = rounded(Color.WHITE, 20, Color.rgb(196,218,213))
+            background = rounded(Color.rgb(19,33,53), 20, Color.rgb(183,143,65))
         }
         panel.addViewSafely(text("مشخصات ملک موردنظر", 16f, navy, true))
         panel.addViewSafely(text("شهر جست‌وجو", 12f, navy, true))
@@ -778,7 +795,7 @@ class MainActivity : Activity() {
             threshold = 1
             textSize = 15f
             setPadding(dp(12), dp(10), dp(12), dp(10))
-            background = rounded(Color.rgb(250,252,255), 17, Color.rgb(211,222,232))
+            background = rounded(Color.rgb(22,37,58), 17, Color.rgb(183,143,65))
             setTextColor(ink)
             setHintTextColor(Color.rgb(153,151,143))
         }
@@ -952,7 +969,7 @@ class MainActivity : Activity() {
         val resultSummary = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), dp(10), dp(10), dp(10))
-            background = rounded(Color.WHITE, 18, Color.rgb(211,222,232))
+            background = rounded(Color.rgb(18,32,51), 18, Color.rgb(183,143,65))
         }
         val resultTitle = text("آماده جست‌وجو", 14f, navy, true)
         resultSummary.addViewSafely(resultTitle, LinearLayout.LayoutParams(-1, -2))
@@ -987,7 +1004,7 @@ class MainActivity : Activity() {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(dp(8), dp(8), dp(8), dp(8))
-                    background = rounded(Color.rgb(250,252,255), 14, Color.rgb(218,226,234))
+                    background = rounded(Color.rgb(23,39,61), 14, Color.rgb(115,96,66))
                     isClickable = true
                     isFocusable = true
                     setOnClickListener {

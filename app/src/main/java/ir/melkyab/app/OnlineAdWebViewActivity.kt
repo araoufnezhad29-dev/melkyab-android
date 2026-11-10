@@ -42,13 +42,13 @@ class OnlineAdWebViewActivity : Activity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(Color.WHITE)
+            setBackgroundColor(Color.rgb(9,20,36))
         }
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(8, 8, 8, 8)
-            setBackgroundColor(Color.rgb(245, 248, 251))
+            setBackgroundColor(Color.rgb(18,33,53))
         }
         val back = Button(this).apply {
             text = "بازگشت"
@@ -57,7 +57,7 @@ class OnlineAdWebViewActivity : Activity() {
         val title = TextView(this).apply {
             text = "مشاهده آگهی اصلی"
             textSize = 15f
-            setTextColor(Color.rgb(28, 47, 69))
+            setTextColor(Color.rgb(244,232,207))
             gravity = Gravity.CENTER
         }
         header.addView(back, LinearLayout.LayoutParams(-2, -2))
@@ -67,6 +67,11 @@ class OnlineAdWebViewActivity : Activity() {
                 text = "استخراج نتایج"
                 textSize = 12f
                 isAllCaps = false
+                setTextColor(Color.rgb(25,31,41))
+                background = android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                    intArrayOf(Color.rgb(255,211,112), Color.rgb(218,151,42))
+                ).apply { cornerRadius = 18f }
                 setOnClickListener { extractKashanoResults() }
             }, LinearLayout.LayoutParams(-2, -2))
         }
@@ -148,9 +153,9 @@ class OnlineAdWebViewActivity : Activity() {
                   if (t.length < 28 || t.length > 1100) continue;
                   // Accept listing-like cards only: generic menu/navigation text often contains
                   // words such as "فروش" or "قیمت" but has no area/price/property combination.
-                  const hasArea = /[0-9۰-۹٠-٩][0-9۰-۹٠-٩.,٬،]*\\s*(?:متر|متری)/i.test(t);
+                  const hasArea = /[0-9۰-۹٠-٩][0-9۰-۹٠-٩.,٬،]*\s*(?:متر|متری)/i.test(t);
                   const hasPrice = numeric.test(t);
-                  const hasRooms = /[0-9۰-۹٠-٩]+\\s*(?:خوابه|خواب)/i.test(t) || /بدون\\s*خواب/i.test(t);
+                  const hasRooms = /[0-9۰-۹٠-٩]+\s*(?:خوابه|خواب)/i.test(t) || /بدون\s*خواب/i.test(t);
                   const hasDeal = /(فروش|رهن|اجاره|ودیعه)/i.test(t);
                   const hasType = /(آپارتمان|خانه|ملک|ویلایی|ویلا|مسکونی|تجاری)/i.test(t);
                   const score = (hasArea ? 3 : 0) + (hasPrice ? 3 : 0) + (hasRooms ? 2 : 0) + (hasDeal ? 1 : 0) + (hasType ? 2 : 0);
@@ -166,9 +171,9 @@ class OnlineAdWebViewActivity : Activity() {
                 if (!url || seen.has(url)) continue;
                 const bodyText = clean(card.innerText || card.textContent);
                 if (bodyText.length < 28 || bodyText.length > 1100) continue;
-                const hasArea = /[0-9۰-۹٠-٩][0-9۰-۹٠-٩.,٬،]*\\s*(?:متر|متری)/i.test(bodyText);
+                const hasArea = /[0-9۰-۹٠-٩][0-9۰-۹٠-٩.,٬،]*\s*(?:متر|متری)/i.test(bodyText);
                 const hasPrice = numeric.test(bodyText);
-                const hasRooms = /[0-9۰-۹٠-٩]+\\s*(?:خوابه|خواب)/i.test(bodyText) || /بدون\\s*خواب/i.test(bodyText);
+                const hasRooms = /[0-9۰-۹٠-٩]+\s*(?:خوابه|خواب)/i.test(bodyText) || /بدون\s*خواب/i.test(bodyText);
                 const hasDeal = /(فروش|رهن|اجاره|ودیعه)/i.test(bodyText);
                 const hasType = /(آپارتمان|خانه|ملک|ویلایی|ویلا|مسکونی|تجاری)/i.test(bodyText);
                 const score = (hasArea ? 3 : 0) + (hasPrice ? 3 : 0) + (hasRooms ? 2 : 0) + (hasDeal ? 1 : 0) + (hasType ? 2 : 0);

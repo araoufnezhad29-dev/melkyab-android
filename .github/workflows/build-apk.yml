@@ -24,9 +24,9 @@ jobs:
           )
           with urllib.request.urlopen(page, timeout=30) as r:
               document = r.read().decode('utf-8', 'replace')
-          match = re.search(r'<meta[^>]+property=["\\']og:image["\\'][^>]+content=["\\']([^"\\']+)', document, re.I)
+          match = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)', document, re.I)
           if not match:
-              match = re.search(r'<meta[^>]+content=["\\']([^"\\']+)["\\'][^>]+property=["\\']og:image["\\']', document, re.I)
+              match = re.search(r'<meta[^>]+content="([^"]+)"[^>]+property="og:image"', document, re.I)
           if not match:
               raise SystemExit('Unsplash og:image metadata was not found')
           image_url = html.unescape(match.group(1))

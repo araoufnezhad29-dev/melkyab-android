@@ -369,16 +369,55 @@ class MainActivity : Activity() {
         return bitmap
     }
 
+    // Vector skyline artwork for the home header; no external image asset required.
+    private fun skylineBackdrop(): View = object : View(this) {
+        private val buildingPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        private val windowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        override fun onDraw(canvas: android.graphics.Canvas) {
+            super.onDraw(canvas)
+            val w = width.toFloat()
+            val h = height.toFloat()
+            if (w <= 0f || h <= 0f) return
+            val base = h * 0.88f
+            val colors = intArrayOf(Color.rgb(18,34,54), Color.rgb(23,42,64), Color.rgb(15,29,47), Color.rgb(30,49,70))
+            val buildings = listOf(
+                floatArrayOf(0.00f,0.47f,0.15f,0.88f), floatArrayOf(0.12f,0.30f,0.27f,0.88f),
+                floatArrayOf(0.25f,0.53f,0.39f,0.88f), floatArrayOf(0.37f,0.20f,0.53f,0.88f),
+                floatArrayOf(0.51f,0.40f,0.66f,0.88f), floatArrayOf(0.64f,0.27f,0.79f,0.88f),
+                floatArrayOf(0.77f,0.48f,0.91f,0.88f), floatArrayOf(0.89f,0.35f,1.02f,0.88f)
+            )
+            buildings.forEachIndexed { index, b ->
+                val left=w*b[0]; val top=h*b[1]; val right=w*b[2]
+                buildingPaint.color=colors[index % colors.size]
+                canvas.drawRect(left,top,right,base,buildingPaint)
+                buildingPaint.color=Color.rgb(190,151,82)
+                buildingPaint.strokeWidth=dp(1).toFloat()
+                canvas.drawLine(left,top,right,top,buildingPaint)
+                windowPaint.color=Color.argb(115,224,184,105)
+                val cols=3
+                val rows=((base-top)/dp(13).coerceAtLeast(8)).toInt().coerceAtMost(8)
+                for (row in 0 until rows) for (col in 0 until cols) {
+                    val x=left+dp(5)+col*((right-left-dp(10))/cols.coerceAtLeast(1))
+                    val y=top+dp(9)+row*dp(13)
+                    if (x < right-dp(3) && y < base-dp(4)) canvas.drawRect(x,y,x+dp(3),y+dp(5),windowPaint)
+                }
+            }
+            buildingPaint.color=Color.rgb(194,151,82)
+            buildingPaint.alpha=150
+            canvas.drawRect(0f,base,w,h,buildingPaint)
+        }
+    }
+
     private fun render() {
-        window.statusBarColor = Color.rgb(13,27,47)
-        window.navigationBarColor = Color.rgb(239,234,222)
+        window.statusBarColor = Color.rgb(9,18,32)
+        window.navigationBarColor = Color.rgb(9,18,32)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = 0
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10),dp(7),dp(10),0)
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(239,245,250), Color.rgb(229,239,244), Color.rgb(246,248,251)))
+                intArrayOf(Color.rgb(10,20,35), Color.rgb(17,32,51), Color.rgb(11,23,39)))
         }
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -394,10 +433,12 @@ class MainActivity : Activity() {
                 cornerRadius = dp(25).toFloat()
                 setStroke(dp(1), Color.rgb(190,151,82))
             }
+            clipToOutline = true
             elevation = dp(5).toFloat()
+            addView(skylineBackdrop(), FrameLayout.LayoutParams(-1, -1))
             addView(brandMark, FrameLayout.LayoutParams(dp(120),dp(120),Gravity.CENTER))
         }
-        page.addViewSafely(logoWrap, LinearLayout.LayoutParams(-1, dp(132)).apply {
+        page.addViewSafely(logoWrap, LinearLayout.LayoutParams(-1, dp(150)).apply {
             bottomMargin = dp(8); topMargin = dp(2)
         })
 
@@ -407,13 +448,13 @@ class MainActivity : Activity() {
             setPadding(dp(2), dp(1), dp(2), dp(1))
             setBackgroundColor(Color.TRANSPARENT)
         }
-        slogan.addViewSafely(text("ساماندهی هوشمند فایل‌های ملکی", 17f, navy, true).apply {
+        slogan.addViewSafely(text("ساماندهی هوشمند فایل‌های ملکی", 17f, Color.rgb(244,235,215), true).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             includeFontPadding = false
             setPadding(0, dp(2), 0, dp(2))
         }, LinearLayout.LayoutParams(-1, dp(29)))
-        slogan.addViewSafely(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 11f, muted).apply {
+        slogan.addViewSafely(text("ثبت، دسته‌بندی و مدیریت آسان آگهی‌ها", 11f, Color.rgb(174,188,205)).apply {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             includeFontPadding = false
@@ -424,11 +465,11 @@ class MainActivity : Activity() {
         val searchPanel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(9),dp(5),dp(9),dp(5))
-            background = rounded(Color.WHITE,24,Color.rgb(196,218,213))
+            background = rounded(Color.rgb(24,39,59),24,Color.rgb(190,151,82))
             elevation = dp(2).toFloat()
         }
         search = field("عنوان")
-        search.background = rounded(Color.rgb(255,254,250),13,Color.rgb(232,224,207))
+        search.background = rounded(Color.rgb(241,237,226),13,Color.rgb(190,151,82))
         search.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
         search.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH || actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
@@ -487,8 +528,8 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(3), dp(1), dp(3), dp(3))
         }
-        categoryTitle.addViewSafely(text("دسته‌بندی آگهی‌ها", 16f, navy, true), LinearLayout.LayoutParams(0,-2,1f))
-        categoryTitle.addViewSafely(text("انتخاب بخش موردنظر", 11f, muted))
+        categoryTitle.addViewSafely(text("دسته‌بندی آگهی‌ها", 16f, Color.rgb(244,235,215), true), LinearLayout.LayoutParams(0,-2,1f))
+        categoryTitle.addViewSafely(text("انتخاب بخش موردنظر", 11f, Color.rgb(170,185,202)))
         page.addViewSafely(categoryTitle)
         val categories = listOf("فروش", "رهن", "رهن و اجاره", "کلنگی و مستغلات")
         categories.chunked(2).forEach { pair ->
@@ -505,9 +546,9 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER
                     setPadding(dp(5),dp(3),dp(5),dp(3))
                     background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                        intArrayOf(Color.WHITE, Color.rgb(235,245,242))).apply {
+                        intArrayOf(Color.rgb(28,44,64), Color.rgb(20,34,52))).apply {
                         cornerRadius = dp(25).toFloat()
-                        setStroke(dp(1), Color.rgb(193,216,209))
+                        setStroke(dp(1), Color.rgb(190,151,82))
                     }
                     elevation = dp(5).toFloat()
                     isClickable = true
@@ -525,10 +566,10 @@ class MainActivity : Activity() {
                     textSize = 22f
                     setTextColor(accent)
                     gravity = Gravity.CENTER
-                    background = rounded(Color.rgb(250,246,235), 30, accent)
+                    background = rounded(Color.rgb(17,29,46), 30, accent)
                 }
                 tile.addViewSafely(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
-                tile.addViewSafely(text(category, 16f, navy, true).apply {
+                tile.addViewSafely(text(category, 16f, Color.rgb(244,235,215), true).apply {
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
                     maxLines = 2
@@ -575,7 +616,7 @@ class MainActivity : Activity() {
             setPadding(dp(6), dp(2), dp(6), dp(2))
             setBackgroundColor(Color.TRANSPARENT)
         }
-        credit.addViewSafely(text("طراح: مهندس رئوف نژاد", 11f, navy, true).apply {
+        credit.addViewSafely(text("طراح: مهندس رئوف نژاد", 11f, Color.rgb(224,184,105), true).apply {
             gravity = Gravity.CENTER
             includeFontPadding = true
             setPadding(0, 0, 0, 0)
@@ -594,7 +635,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(18), dp(16), dp(8))
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(250,248,242), Color.rgb(239,233,219)))
+                intArrayOf(Color.rgb(10,20,35), Color.rgb(19,34,53)))
         }
         val scroll = ScrollView(this)
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -671,7 +712,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), dp(10), dp(12), dp(8))
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(239,245,250), Color.rgb(229,239,244)))
+                intArrayOf(Color.rgb(10,20,35), Color.rgb(19,34,53)))
         }
         val toolbar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -689,7 +730,7 @@ class MainActivity : Activity() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), dp(10), dp(12), dp(10))
-            background = rounded(Color.WHITE, 20, Color.rgb(196,218,213))
+            background = rounded(Color.rgb(24,39,59), 20, Color.rgb(190,151,82))
         }
         panel.addViewSafely(text("مشخصات ملک موردنظر", 16f, navy, true))
         panel.addViewSafely(text("شهر جست‌وجو", 12f, navy, true))
@@ -880,7 +921,7 @@ class MainActivity : Activity() {
         val resultSummary = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), dp(10), dp(10), dp(10))
-            background = rounded(Color.WHITE, 18, Color.rgb(211,222,232))
+            background = rounded(Color.rgb(24,39,59), 18, Color.rgb(190,151,82))
         }
         val resultTitle = text("آماده جست‌وجو", 14f, navy, true)
         resultSummary.addViewSafely(resultTitle, LinearLayout.LayoutParams(-1, -2))
@@ -915,7 +956,7 @@ class MainActivity : Activity() {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(dp(8), dp(8), dp(8), dp(8))
-                    background = rounded(Color.rgb(250,252,255), 14, Color.rgb(218,226,234))
+                    background = rounded(Color.rgb(31,48,69), 14, Color.rgb(123,102,67))
                     isClickable = true
                     isFocusable = true
                     setOnClickListener {
@@ -929,7 +970,7 @@ class MainActivity : Activity() {
                 }
                 val image = ImageView(this).apply {
                     scaleType = ImageView.ScaleType.CENTER_CROP
-                    background = rounded(Color.rgb(235,239,243), 10)
+                    background = rounded(Color.rgb(35,52,73), 10)
                 }
                 card.addViewSafely(image, LinearLayout.LayoutParams(dp(104), dp(96)).apply { marginEnd = dp(9) })
                 val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -1440,7 +1481,7 @@ class MainActivity : Activity() {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(if (compact) 4 else 12),dp(if (compact) 5 else 10),dp(if (compact) 4 else 12),dp(if (compact) 5 else 10))
-            background = rounded(Color.WHITE, 14, Color.rgb(229,234,241))
+            background = rounded(Color.rgb(27,43,63), 14, Color.rgb(125,103,67))
         }
         val photoCount = try { JSONArray(p.photos).length() } catch (_: Exception) { 0 }
         if (photoCount > 0) {

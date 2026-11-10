@@ -36,7 +36,7 @@ jobs:
               content_type = r.headers.get('Content-Type', '')
           if len(image) < 100_000 or len(image) > 20_000_000:
               raise SystemExit(f'Unexpected image size: {len(image)} bytes')
-          if not (image.startswith(b'\\xff\\xd8\\xff') or image.startswith(b'\\x89PNG\\r\\n\\x1a\\n') or image[:4] == b'RIFF'):
+          if not (image.startswith(b'\xff\xd8\xff') or image.startswith(b'\x89PNG\r\n\x1a\n') or image[:4] == b'RIFF'):
               raise SystemExit(f'Download did not return a recognized image (Content-Type: {content_type})')
           target = Path('app/src/main/assets/home_city_header.jpg.b64')
           target.write_text(base64.b64encode(image).decode('ascii'))

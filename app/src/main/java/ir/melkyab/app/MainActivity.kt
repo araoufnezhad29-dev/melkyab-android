@@ -460,6 +460,14 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun referenceCityBitmap(): android.graphics.Bitmap? {
+        return try {
+            val encoded = assets.open("home_city_header.jpg.b64").bufferedReader().use { it.readText() }
+            val bytes = android.util.Base64.decode(encoded, android.util.Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        } catch (_: Exception) { null }
+    }
+
     private fun render() {
         window.statusBarColor = Color.rgb(9,18,32)
         window.navigationBarColor = Color.rgb(9,18,32)
@@ -487,10 +495,24 @@ class MainActivity : Activity() {
             }
             clipToOutline = true
             elevation = dp(5).toFloat()
-            addView(skylineBackdrop(), FrameLayout.LayoutParams(-1, -1))
-            addView(brandMark, FrameLayout.LayoutParams(dp(120),dp(120),Gravity.CENTER))
+            val cityPhoto = ImageView(this).apply {
+                setImageBitmap(referenceCityBitmap())
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                contentDescription = "نمای شبانه تهران و برج میلاد"
+                setBackgroundColor(Color.rgb(7,18,34))
+            }
+            addView(cityPhoto, FrameLayout.LayoutParams(-1, -1))
+            // A subtle navy veil keeps the gold logo legible without hiding the real city photo.
+            val veil = View(this).apply {
+                background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                    intArrayOf(Color.argb(35,5,13,25), Color.argb(95,5,13,25)))
+            }
+            addView(veil, FrameLayout.LayoutParams(-1, -1))
+            addView(brandMark, FrameLayout.LayoutParams(dp(112),dp(112),Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {
+                topMargin = dp(34)
+            })
         }
-        page.addViewSafely(logoWrap, LinearLayout.LayoutParams(-1, dp(150)).apply {
+        page.addViewSafely(logoWrap, LinearLayout.LayoutParams(-1, dp(238)).apply {
             bottomMargin = dp(8); topMargin = dp(2)
         })
 
@@ -512,7 +534,7 @@ class MainActivity : Activity() {
             includeFontPadding = false
             setPadding(0, dp(1), 0, dp(1))
         }, LinearLayout.LayoutParams(-1, dp(21)))
-        page.addViewSafely(slogan, LinearLayout.LayoutParams(-1, dp(56)).apply { bottomMargin = dp(8) })
+        page.addViewSafely(slogan, LinearLayout.LayoutParams(-1, dp(50)).apply { bottomMargin = dp(7) })
 
         val searchPanel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -670,7 +692,7 @@ class MainActivity : Activity() {
             setPadding(dp(6), dp(2), dp(6), dp(2))
             setBackgroundColor(Color.TRANSPARENT)
         }
-        credit.addViewSafely(text("طراح: مهندس رئوف نژاد", 11f, Color.rgb(224,184,105), true).apply {
+        credit.addViewSafely(text("طراح: مهندس رئوف‌نژاد", 11f, Color.rgb(224,184,105), true).apply {
             gravity = Gravity.CENTER
             includeFontPadding = true
             setPadding(0, 0, 0, 0)

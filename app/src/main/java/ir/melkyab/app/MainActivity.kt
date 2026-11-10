@@ -635,7 +635,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(18), dp(16), dp(8))
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(10,20,35), Color.rgb(19,34,53)))
+                intArrayOf(Color.rgb(250,248,242), Color.rgb(239,233,219)))
         }
         val scroll = ScrollView(this)
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -712,7 +712,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), dp(10), dp(12), dp(8))
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(10,20,35), Color.rgb(19,34,53)))
+                intArrayOf(Color.rgb(250,248,242), Color.rgb(239,233,219)))
         }
         val toolbar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -730,7 +730,7 @@ class MainActivity : Activity() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), dp(10), dp(12), dp(10))
-            background = rounded(Color.rgb(24,39,59), 20, Color.rgb(190,151,82))
+            background = rounded(Color.WHITE, 20, Color.rgb(196,218,213))
         }
         panel.addViewSafely(text("مشخصات ملک موردنظر", 16f, navy, true))
         panel.addViewSafely(text("شهر جست‌وجو", 12f, navy, true))
@@ -921,7 +921,7 @@ class MainActivity : Activity() {
         val resultSummary = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), dp(10), dp(10), dp(10))
-            background = rounded(Color.rgb(24,39,59), 18, Color.rgb(190,151,82))
+            background = rounded(Color.WHITE, 18, Color.rgb(211,222,232))
         }
         val resultTitle = text("آماده جست‌وجو", 14f, navy, true)
         resultSummary.addViewSafely(resultTitle, LinearLayout.LayoutParams(-1, -2))
@@ -956,7 +956,7 @@ class MainActivity : Activity() {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(dp(8), dp(8), dp(8), dp(8))
-                    background = rounded(Color.rgb(31,48,69), 14, Color.rgb(123,102,67))
+                    background = rounded(Color.rgb(250,252,255), 14, Color.rgb(218,226,234))
                     isClickable = true
                     isFocusable = true
                     setOnClickListener {

@@ -495,7 +495,7 @@ class MainActivity : Activity() {
             }
             clipToOutline = true
             elevation = dp(5).toFloat()
-            val cityPhoto = ImageView(this).apply {
+            val cityPhoto = ImageView(this@MainActivity).apply {
                 setImageBitmap(referenceCityBitmap())
                 scaleType = ImageView.ScaleType.CENTER_CROP
                 contentDescription = "نمای شبانه تهران و برج میلاد"
@@ -503,7 +503,7 @@ class MainActivity : Activity() {
             }
             addView(cityPhoto, FrameLayout.LayoutParams(-1, -1))
             // A subtle navy veil keeps the gold logo legible without hiding the real city photo.
-            val veil = View(this).apply {
+            val veil = View(this@MainActivity).apply {
                 background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
                     intArrayOf(Color.argb(35,5,13,25), Color.argb(95,5,13,25)))
             }

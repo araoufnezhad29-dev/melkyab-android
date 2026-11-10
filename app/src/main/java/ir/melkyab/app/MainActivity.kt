@@ -1495,11 +1495,11 @@ class MainActivity : Activity() {
         } else if (compact) {
             card.addViewSafely(text("بدون عکس", 10f, muted))
         }
-        card.addViewSafely(text(p.title.ifBlank { "بدون عنوان" }, if (compact) 11f else 17f, navy, true))
-        card.addViewSafely(text(p.deal, if (compact) 10f else 12f, blue, true))
-        card.addViewSafely(text(p.kind, if (compact) 9f else 13f, muted))
-        card.addViewSafely(text(p.area + " متر", if (compact) 9f else 12f, muted))
-        if (p.address.isNotBlank()) card.addViewSafely(text("آدرس: " + p.address, if (compact) 8f else 11f, muted))
+        card.addViewSafely(text(p.title.ifBlank { "بدون عنوان" }, if (compact) 11f else 17f, Color.rgb(245,237,220), true))
+        card.addViewSafely(text(p.deal, if (compact) 10f else 12f, Color.rgb(91,190,177), true))
+        card.addViewSafely(text(p.kind, if (compact) 9f else 13f, Color.rgb(177,190,207)))
+        card.addViewSafely(text(p.area + " متر", if (compact) 9f else 12f, Color.rgb(177,190,207)))
+        if (p.address.isNotBlank()) card.addViewSafely(text("آدرس: " + p.address, if (compact) 8f else 11f, Color.rgb(177,190,207)))
         val sqm = rawMoney(p.area).toLongOrNull() ?: 0L
         val salePrice = p.price.toLongOrNull() ?: 0L
         if (p.deal == "فروش" && sqm > 0 && salePrice > 0) {
@@ -1510,8 +1510,8 @@ class MainActivity : Activity() {
             "رهن کامل" -> "رهن: " + formatMoney(p.deposit)
             else -> "رهن: " + formatMoney(p.deposit) + "\nاجاره: " + formatMoney(p.rent)
         }
-        card.addViewSafely(text(money, if (compact) 9f else 13f, navy, true))
-        card.addViewSafely(text("تاریخ ثبت: " + persianDate(p.createdAt), if (compact) 8f else 10f, muted).apply { gravity = Gravity.LEFT })
+        card.addViewSafely(text(money, if (compact) 9f else 13f, Color.rgb(245,237,220), true))
+        card.addViewSafely(text("تاریخ ثبت: " + persianDate(p.createdAt), if (compact) 8f else 10f, Color.rgb(177,190,207)).apply { gravity = Gravity.LEFT })
         if (photoCount > 0) card.addViewSafely(button("عکس‌ها " + photoCount, { showGallery(p) }))
         val actions = LinearLayout(this).apply { orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL }
         actions.addViewSafely(button("ویرایش", { showEditor(p) }), LinearLayout.LayoutParams(if (compact) -1 else 0, dp(38), if (compact) 0f else 1f))

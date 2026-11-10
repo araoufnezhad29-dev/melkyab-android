@@ -473,47 +473,37 @@ class MainActivity : Activity() {
         window.navigationBarColor = Color.rgb(9,18,32)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = 0
-        val root = LinearLayout(this).apply {
+        // Full-screen background image; all interactive content sits above a dark veil.
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(Color.rgb(7,17,31))
+        }
+        val backdrop = ImageView(this).apply {
+            setImageBitmap(referenceCityBitmap())
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            contentDescription = "پس‌زمینه شبانه شهر"
+        }
+        root.addView(backdrop, FrameLayout.LayoutParams(-1, -1))
+        val backdropVeil = View(this).apply {
+            setBackgroundColor(Color.argb(174, 5, 14, 27))
+        }
+        root.addView(backdropVeil, FrameLayout.LayoutParams(-1, -1))
+        val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10),dp(7),dp(10),0)
-            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(10,20,35), Color.rgb(17,32,51), Color.rgb(11,23,39)))
         }
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        // The existing logo is rendered once as a clean foreground mark.
         val brandMark = ImageView(this).apply {
             setImageBitmap(logoOnHeader())
             scaleType = ImageView.ScaleType.FIT_CENTER
             setBackgroundColor(Color.TRANSPARENT)
-            contentDescription = "لوگوی ملک‌یاب؛ خانه و ذره‌بین طلایی"
+            contentDescription = "لوگوی ملک‌یاب"
         }
-        val logoWrap = FrameLayout(this).apply {
-            background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(13,27,47), Color.rgb(31,51,76), Color.rgb(13,27,47))).apply {
-                cornerRadius = dp(25).toFloat()
-                setStroke(dp(1), Color.rgb(190,151,82))
-            }
-            clipToOutline = true
-            elevation = dp(5).toFloat()
-            val cityPhoto = ImageView(this@MainActivity).apply {
-                setImageBitmap(referenceCityBitmap())
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                contentDescription = "نمای شبانه تهران و برج میلاد"
-                setBackgroundColor(Color.rgb(7,18,34))
-            }
-            addView(cityPhoto, FrameLayout.LayoutParams(-1, -1))
-            // A subtle navy veil keeps the gold logo legible without hiding the real city photo.
-            val veil = View(this@MainActivity).apply {
-                background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                    intArrayOf(Color.argb(35,5,13,25), Color.argb(95,5,13,25)))
-            }
-            addView(veil, FrameLayout.LayoutParams(-1, -1))
-            addView(brandMark, FrameLayout.LayoutParams(dp(112),dp(112),Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {
-                topMargin = dp(34)
-            })
-        }
-        page.addViewSafely(logoWrap, LinearLayout.LayoutParams(-1, dp(238)).apply {
-            bottomMargin = dp(8); topMargin = dp(2)
+        page.addViewSafely(brandMark, LinearLayout.LayoutParams(dp(112), dp(92)).apply {
+            gravity = Gravity.CENTER_HORIZONTAL
+            topMargin = dp(3)
+            bottomMargin = dp(3)
         })
 
         val slogan = LinearLayout(this).apply {
@@ -685,7 +675,7 @@ class MainActivity : Activity() {
         })
 
         scroll.addViewSafely(page)
-        root.addViewSafely(scroll, LinearLayout.LayoutParams(-1,0,1f))
+        content.addViewSafely(scroll, LinearLayout.LayoutParams(-1,0,1f))
         val credit = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -698,9 +688,8 @@ class MainActivity : Activity() {
             setPadding(0, 0, 0, 0)
             minHeight = dp(24)
         }, LinearLayout.LayoutParams(-1, -2))
-        root.addViewSafely(credit, LinearLayout.LayoutParams(-1, dp(42)).apply {
-            topMargin = dp(2); bottomMargin = dp(8)
-        })
+        content.addViewSafely(credit, LinearLayout.LayoutParams(-1, dp(42)))
+        root.addView(content, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
         list.removeAllViews()
     }

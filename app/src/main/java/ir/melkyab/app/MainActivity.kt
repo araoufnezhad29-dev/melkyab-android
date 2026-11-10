@@ -145,6 +145,12 @@ class MainActivity : Activity() {
             Toast.makeText(this, "تعداد عکس‌ها: " + selectedPhotos.size, Toast.LENGTH_SHORT).show()
         } else if (requestCode == 202 && resultCode == Activity.RESULT_OK && data != null) {
             val raw = data.getStringExtra(OnlineAdWebViewActivity.RESULT_KASHANO_ADS).orEmpty()
+            // Android may recreate MainActivity while the WebView is open; rebuild the
+            // online-search screen before delivering the returned cards in that case.
+            if (kashanoResultHandler == null && raw.isNotBlank()) {
+                activeSection = "جست‌وجوی آنلاین"
+                renderOnlineSearch()
+            }
             kashanoResultHandler?.invoke(raw)
             kashanoResultHandler = null
         } else if (requestCode == 202) {
@@ -683,7 +689,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(18), dp(16), dp(8))
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(250,248,242), Color.rgb(239,233,219)))
+                intArrayOf(Color.rgb(8,18,32), Color.rgb(19,35,56), Color.rgb(9,21,38)))
         }
         val scroll = ScrollView(this)
         val page = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -785,7 +791,7 @@ class MainActivity : Activity() {
         panel.addViewSafely(field("تهران", "تهران").apply {
             isEnabled = false
             setTextColor(navy)
-            background = rounded(Color.rgb(239,244,247), 12)
+            background = rounded(Color.rgb(24,40,61), 12, Color.rgb(183,143,65))
         }, LinearLayout.LayoutParams(-1, dp(44)))
         val districtLabel = text("منطقه یا محله تهران", 12f, navy, true)
         panel.addViewSafely(districtLabel)

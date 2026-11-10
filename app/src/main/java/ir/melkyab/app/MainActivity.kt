@@ -369,42 +369,73 @@ class MainActivity : Activity() {
         return bitmap
     }
 
-    // Vector skyline artwork for the home header; no external image asset required.
+    // Layered cityscape artwork for the home header: varied towers, depth,
+    // rooftop details and warm illuminated windows against a midnight sky.
     private fun skylineBackdrop(): View = object : View(this) {
-        private val buildingPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-        private val windowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        private val rect = android.graphics.RectF()
         override fun onDraw(canvas: android.graphics.Canvas) {
             super.onDraw(canvas)
             val w = width.toFloat()
             val h = height.toFloat()
             if (w <= 0f || h <= 0f) return
-            val base = h * 0.88f
-            val colors = intArrayOf(Color.rgb(18,34,54), Color.rgb(23,42,64), Color.rgb(15,29,47), Color.rgb(30,49,70))
-            val buildings = listOf(
-                floatArrayOf(0.00f,0.47f,0.15f,0.88f), floatArrayOf(0.12f,0.30f,0.27f,0.88f),
-                floatArrayOf(0.25f,0.53f,0.39f,0.88f), floatArrayOf(0.37f,0.20f,0.53f,0.88f),
-                floatArrayOf(0.51f,0.40f,0.66f,0.88f), floatArrayOf(0.64f,0.27f,0.79f,0.88f),
-                floatArrayOf(0.77f,0.48f,0.91f,0.88f), floatArrayOf(0.89f,0.35f,1.02f,0.88f)
-            )
-            buildings.forEachIndexed { index, b ->
-                val left=w*b[0]; val top=h*b[1]; val right=w*b[2]
-                buildingPaint.color=colors[index % colors.size]
-                canvas.drawRect(left,top,right,base,buildingPaint)
-                buildingPaint.color=Color.rgb(190,151,82)
-                buildingPaint.strokeWidth=dp(1).toFloat()
-                canvas.drawLine(left,top,right,top,buildingPaint)
-                windowPaint.color=Color.argb(115,224,184,105)
-                val cols=3
-                val rows=((base-top)/dp(13).coerceAtLeast(8)).toInt().coerceAtMost(8)
-                for (row in 0 until rows) for (col in 0 until cols) {
-                    val x=left+dp(5)+col*((right-left-dp(10))/cols.coerceAtLeast(1))
-                    val y=top+dp(9)+row*dp(13)
-                    if (x < right-dp(3) && y < base-dp(4)) canvas.drawRect(x,y,x+dp(3),y+dp(5),windowPaint)
+            paint.shader = android.graphics.LinearGradient(0f,0f,w,h,
+                intArrayOf(Color.rgb(7,18,35),Color.rgb(28,51,77),Color.rgb(8,21,39)),
+                null,android.graphics.Shader.TileMode.CLAMP)
+            canvas.drawRect(0f,0f,w,h,paint); paint.shader = null
+            paint.shader = android.graphics.RadialGradient(w*.52f,h*.48f,w*.65f,
+                intArrayOf(Color.argb(75,102,130,153),Color.argb(0,20,38,60)),
+                null,android.graphics.Shader.TileMode.CLAMP)
+            canvas.drawRect(0f,0f,w,h,paint); paint.shader = null
+
+            val far = listOf(
+                floatArrayOf(0f,.52f,.10f),floatArrayOf(.08f,.42f,.19f),
+                floatArrayOf(.18f,.57f,.29f),floatArrayOf(.29f,.38f,.40f),
+                floatArrayOf(.39f,.51f,.50f),floatArrayOf(.50f,.43f,.61f),
+                floatArrayOf(.61f,.55f,.72f),floatArrayOf(.71f,.39f,.82f),
+                floatArrayOf(.81f,.50f,.92f),floatArrayOf(.91f,.44f,1f))
+            far.forEachIndexed { i,b ->
+                val l=w*b[0]; val t=h*b[1]; val r=w*b[2]; val base=h*.94f
+                paint.color=intArrayOf(Color.rgb(27,45,64),Color.rgb(32,51,70),Color.rgb(22,40,60))[i%3]
+                canvas.drawRect(l,t,r,base,paint)
+                paint.color=Color.argb(90,211,174,111)
+                val cols=3; val rows=((base-t)/dp(15).coerceAtLeast(8)).toInt().coerceAtMost(8)
+                for (yy in 0 until rows) for (xx in 0 until cols) {
+                    val x=l+dp(5)+xx*((r-l-dp(10))/cols)
+                    val y=t+dp(9)+yy*dp(15)
+                    canvas.drawRect(x,y,x+dp(2),y+dp(4),paint)
                 }
             }
-            buildingPaint.color=Color.rgb(194,151,82)
-            buildingPaint.alpha=150
-            canvas.drawRect(0f,base,w,h,buildingPaint)
+
+            val buildings = listOf(
+                floatArrayOf(-.02f,.48f,.13f),floatArrayOf(.10f,.31f,.24f),
+                floatArrayOf(.22f,.55f,.34f),floatArrayOf(.32f,.22f,.47f),
+                floatArrayOf(.45f,.43f,.58f),floatArrayOf(.56f,.29f,.71f),
+                floatArrayOf(.69f,.51f,.82f),floatArrayOf(.80f,.36f,.94f),
+                floatArrayOf(.92f,.49f,1.03f))
+            buildings.forEachIndexed { i,b ->
+                val l=w*b[0]; val t=h*b[1]; val r=w*b[2]; val base=h*.94f
+                paint.color=intArrayOf(Color.rgb(12,27,47),Color.rgb(17,35,56),
+                    Color.rgb(23,41,62),Color.rgb(15,31,51),Color.rgb(25,43,63))[i%5]
+                rect.set(l,t,r,base); canvas.drawRoundRect(rect,dp(1).toFloat(),dp(1).toFloat(),paint)
+                paint.color=Color.argb(165,190,150,87); paint.strokeWidth=dp(1).toFloat()
+                canvas.drawLine(l,t,r,t,paint)
+                if (i==1 || i==3 || i==5 || i==7) {
+                    canvas.drawRect(l+(r-l)*.34f,t-dp(7),l+(r-l)*.67f,t,paint)
+                    canvas.drawLine(l+(r-l)*.5f,t-dp(7),l+(r-l)*.5f,t-dp(16),paint)
+                }
+                val cols=if (i==3 || i==5) 4 else 3
+                val rows=((base-t)/dp(13).coerceAtLeast(8)).toInt().coerceAtMost(10)
+                for (yy in 0 until rows) for (xx in 0 until cols) {
+                    val cellW=(r-l)/cols; val x=l+cellW*xx+cellW*.34f; val y=t+dp(10)+yy*dp(13)
+                    if (y<base-dp(5)) {
+                        paint.color=if ((i*7+yy*3+xx*5)%6!=0) Color.argb(205,230,190,121) else Color.argb(75,143,155,166)
+                        canvas.drawRoundRect(x,y,x+dp(3),y+dp(5),dp(1).toFloat(),dp(1).toFloat(),paint)
+                    }
+                }
+            }
+            paint.color=Color.rgb(8,21,38); canvas.drawRect(0f,h*.92f,w,h,paint)
+            paint.color=Color.argb(190,194,151,82); canvas.drawRect(0f,h*.925f,w,h*.932f,paint)
         }
     }
 

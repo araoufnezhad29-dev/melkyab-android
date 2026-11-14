@@ -620,19 +620,19 @@ class MainActivity : Activity() {
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
             pair.forEach { category ->
                 val accent = when(category) {
-                    "فروش" -> Color.rgb(194,111,72)
-                    "رهن" -> Color.rgb(37,132,126)
-                    "رهن و اجاره" -> Color.rgb(91,119,157)
-                    else -> Color.rgb(125,104,82)
+                    "فروش" -> Color.rgb(255,151,91)
+                    "رهن" -> Color.rgb(65,207,184)
+                    "رهن و اجاره" -> Color.rgb(125,174,255)
+                    else -> Color.rgb(219,174,112)
                 }
                 val tile = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
                     setPadding(dp(5),dp(3),dp(5),dp(3))
                     background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                        intArrayOf(Color.argb(62,28,44,64), Color.argb(48,20,34,52))).apply {
+                        intArrayOf(Color.argb(78,28,44,64), Color.argb(64,20,34,52))).apply {
                         cornerRadius = dp(25).toFloat()
-                        setStroke(dp(1), Color.argb(122,225,237,248))
+                        setStroke(dp(1), Color.argb(175,238,220,183))
                     }
                     elevation = dp(5).toFloat()
                     isClickable = true
@@ -648,9 +648,18 @@ class MainActivity : Activity() {
                 val iconCircle = TextView(this).apply {
                     text = symbol
                     textSize = 22f
-                    setTextColor(accent)
+                    setTextColor(Color.rgb(
+                        (Color.red(accent) + 255) / 2,
+                        (Color.green(accent) + 255) / 2,
+                        (Color.blue(accent) + 255) / 2
+                    ))
                     gravity = Gravity.CENTER
-                    background = rounded(Color.argb(54,17,29,46), 30, Color.argb(155, Color.red(accent), Color.green(accent), Color.blue(accent)))
+                    background = rounded(
+                        Color.argb(92, Color.red(accent), Color.green(accent), Color.blue(accent)),
+                        30,
+                        Color.argb(225, Color.red(accent), Color.green(accent), Color.blue(accent))
+                    )
+                    elevation = dp(3).toFloat()
                 }
                 tile.addViewSafely(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
                 tile.addViewSafely(text(category, 16f, Color.rgb(244,235,215), true).apply {
@@ -1806,8 +1815,18 @@ class MainActivity : Activity() {
             orientation = RadioGroup.VERTICAL
             setPadding(dp(8), dp(2), dp(8), dp(2))
         }
-        val singleYes = RadioButton(this).apply { text = "بله"; textSize = 14f; isChecked = (existing?.singleUnit ?: "بله") == "بله" }
-        val singleNo = RadioButton(this).apply { text = "خیر"; textSize = 14f; isChecked = existing?.singleUnit == "خیر" }
+        val singleYes = RadioButton(this).apply {
+            text = "بله"; textSize = 14f
+            setTextColor(Color.rgb(247, 239, 222))
+            buttonTintList = android.content.res.ColorStateList.valueOf(Color.rgb(244, 190, 82))
+            isChecked = (existing?.singleUnit ?: "بله") == "بله"
+        }
+        val singleNo = RadioButton(this).apply {
+            text = "خیر"; textSize = 14f
+            setTextColor(Color.rgb(247, 239, 222))
+            buttonTintList = android.content.res.ColorStateList.valueOf(Color.rgb(244, 190, 82))
+            isChecked = existing?.singleUnit == "خیر"
+        }
         singleUnitGroup.addView(singleYes)
         singleUnitGroup.addView(singleNo)
         content.addViewSafely(singleUnitGroup, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })

@@ -484,7 +484,7 @@ class MainActivity : Activity() {
         }
         root.addView(backdrop, FrameLayout.LayoutParams(-1, -1))
         val backdropVeil = View(this).apply {
-            setBackgroundColor(Color.argb(174, 5, 14, 27))
+            setBackgroundColor(Color.argb(78, 5, 14, 27))
         }
         root.addView(backdropVeil, FrameLayout.LayoutParams(-1, -1))
         val content = LinearLayout(this).apply {
@@ -529,11 +529,11 @@ class MainActivity : Activity() {
         val searchPanel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(9),dp(5),dp(9),dp(5))
-            background = rounded(Color.rgb(24,39,59),24,Color.rgb(190,151,82))
+            background = rounded(Color.argb(205,24,39,59),24,Color.rgb(190,151,82))
             elevation = dp(2).toFloat()
         }
         search = field("عنوان")
-        search.background = rounded(Color.rgb(20,34,54),13,Color.rgb(205,160,73))
+        search.background = rounded(Color.argb(220,20,34,54),13,Color.rgb(205,160,73))
         search.setTextColor(ink)
         search.setHintTextColor(muted)
         search.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
@@ -561,7 +561,7 @@ class MainActivity : Activity() {
             setPadding(dp(8),dp(3),dp(8),dp(3))
             background = GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.rgb(13,27,47), Color.rgb(38,58,82), Color.rgb(13,27,47))
+                intArrayOf(Color.argb(218,13,27,47), Color.argb(218,38,58,82), Color.argb(218,13,27,47))
             ).apply { cornerRadius = dp(21).toFloat(); setStroke(dp(1), Color.rgb(205,166,91)) }
             elevation = dp(6).toFloat()
             isClickable = true
@@ -612,7 +612,7 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER
                     setPadding(dp(5),dp(3),dp(5),dp(3))
                     background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                        intArrayOf(Color.rgb(28,44,64), Color.rgb(20,34,52))).apply {
+                        intArrayOf(Color.argb(202,28,44,64), Color.argb(202,20,34,52))).apply {
                         cornerRadius = dp(25).toFloat()
                         setStroke(dp(1), Color.rgb(190,151,82))
                     }
@@ -655,7 +655,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), dp(8), dp(12), dp(8))
             background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.rgb(20,126,132), Color.rgb(13,73,91))).apply {
+                intArrayOf(Color.argb(225,20,126,132), Color.argb(225,13,73,91))).apply {
                 cornerRadius = dp(20).toFloat()
                 setStroke(dp(1), Color.rgb(205,166,91))
             }

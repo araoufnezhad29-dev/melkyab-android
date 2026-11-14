@@ -506,61 +506,6 @@ class MainActivity : Activity() {
         }
         root.addView(backdropVeil, FrameLayout.LayoutParams(-1, -1))
 
-        // Decorative Tehran highway sign, composited over the city background.
-        val highwaySignLayer = FrameLayout(this).apply {
-            clipChildren = false
-            clipToPadding = false
-            isClickable = false
-        }
-        val signPostColor = Color.rgb(174, 183, 190)
-        val signPanel = TextView(this).apply {
-            text = "خیابان اجاره دار"
-            textSize = 15f
-            setTextColor(Color.WHITE)
-            typeface = Typeface.create("sans-serif", Typeface.BOLD)
-            gravity = Gravity.CENTER
-            textAlignment = View.TEXT_ALIGNMENT_CENTER
-            setPadding(dp(12), dp(4), dp(12), dp(4))
-            background = GradientDrawable().apply {
-                setColor(Color.rgb(5, 105, 82))
-                setStroke(dp(2), Color.rgb(232, 239, 224))
-                cornerRadius = dp(3).toFloat()
-            }
-            elevation = dp(3).toFloat()
-        }
-        val postLeft = View(this).apply { setBackgroundColor(signPostColor) }
-        val postRight = View(this).apply { setBackgroundColor(signPostColor) }
-        highwaySignLayer.addView(postLeft)
-        highwaySignLayer.addView(postRight)
-        highwaySignLayer.addView(signPanel)
-        highwaySignLayer.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
-            val signWidth = (v.width * 0.62f).toInt()
-            val signTop = (v.height * 0.69f).toInt()
-            val signHeight = dp(42)
-            val signLeft = (v.width - signWidth) / 2
-            (signPanel.layoutParams as FrameLayout.LayoutParams).apply {
-                width = signWidth
-                height = signHeight
-                leftMargin = signLeft
-                topMargin = signTop
-                gravity = Gravity.TOP or Gravity.START
-            }.also { signPanel.layoutParams = it }
-            val postWidth = dp(4)
-            val postTop = signTop + signHeight - dp(1)
-            val postHeight = dp(32)
-            (postLeft.layoutParams as? FrameLayout.LayoutParams ?: FrameLayout.LayoutParams(postWidth, postHeight)).apply {
-                width = postWidth; height = postHeight
-                leftMargin = signLeft + signWidth / 4; topMargin = postTop
-                gravity = Gravity.TOP or Gravity.START
-            }.also { postLeft.layoutParams = it }
-            (postRight.layoutParams as? FrameLayout.LayoutParams ?: FrameLayout.LayoutParams(postWidth, postHeight)).apply {
-                width = postWidth; height = postHeight
-                leftMargin = signLeft + signWidth * 3 / 4; topMargin = postTop
-                gravity = Gravity.TOP or Gravity.START
-            }.also { postRight.layoutParams = it }
-        }
-        root.addView(highwaySignLayer, FrameLayout.LayoutParams(-1, -1))
-
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10),dp(7),dp(10),0)

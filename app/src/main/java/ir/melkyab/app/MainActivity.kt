@@ -797,14 +797,14 @@ class MainActivity : Activity() {
             setPadding(dp(12), dp(10), dp(12), dp(10))
             background = rounded(Color.rgb(19,33,53), 20, Color.rgb(183,143,65))
         }
-        panel.addViewSafely(text("مشخصات ملک موردنظر", 16f, navy, true))
-        panel.addViewSafely(text("شهر جست‌وجو", 12f, navy, true))
+        panel.addViewSafely(text("مشخصات ملک موردنظر", 16f, ink, true))
+        panel.addViewSafely(text("شهر جست‌وجو", 12f, ink, true))
         panel.addViewSafely(field("تهران", "تهران").apply {
             isEnabled = false
             setTextColor(navy)
             background = rounded(Color.rgb(24,40,61), 12, Color.rgb(183,143,65))
         }, LinearLayout.LayoutParams(-1, dp(44)))
-        val districtLabel = text("منطقه یا محله تهران", 12f, navy, true)
+        val districtLabel = text("منطقه یا محله تهران", 12f, ink, true)
         panel.addViewSafely(districtLabel)
         val district = android.widget.AutoCompleteTextView(this).apply {
             hint = "نام محله را تایپ کنید؛ مثلاً سعادت‌آباد"
@@ -869,21 +869,45 @@ class MainActivity : Activity() {
             }
         }
         panel.addViewSafely(district, LinearLayout.LayoutParams(-1, dp(46)))
+        // High-contrast selectors: ivory selected text on a lighter navy field,
+        // and dark text on a pale dropdown so every option stays readable.
+        fun onlineSpinnerAdapter(items: List<String>): ArrayAdapter<String> =
+            object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, items) {
+                private fun row(value: String, dropdown: Boolean): TextView = TextView(this@MainActivity).apply {
+                    text = value
+                    textSize = 14f
+                    setTextColor(if (dropdown) Color.rgb(24, 38, 56) else Color.rgb(250, 244, 229))
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(14), dp(10), dp(14), dp(10))
+                    minHeight = dp(44)
+                    if (dropdown) setBackgroundColor(Color.rgb(244, 240, 229))
+                }
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
+                    row(getItem(position).orEmpty(), false)
+                override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View =
+                    row(getItem(position).orEmpty(), true)
+            }
+        fun styleOnlineSpinner(spinner: Spinner) {
+            spinner.background = rounded(Color.rgb(43, 63, 86), 12, Color.rgb(205, 166, 91))
+            spinner.setPadding(dp(8), 0, dp(8), 0)
+            spinner.setPopupBackgroundDrawable(rounded(Color.rgb(244, 240, 229), 10, Color.rgb(183, 143, 65)))
+            spinner.dropDownVerticalOffset = dp(4)
+        }
         val kind = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
                 listOf("آپارتمان", "خانه و ویلایی", "زمین و کلنگی", "اداری و تجاری"))
         }
-        panel.addViewSafely(text("نوع ملک", 12f, navy, true))
+        panel.addViewSafely(text("نوع ملک", 12f, ink, true))
         panel.addViewSafely(kind, LinearLayout.LayoutParams(-1, dp(44)))
         val deal = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
                 listOf("فروش", "رهن", "رهن و اجاره"))
         }
-        panel.addViewSafely(text("نوع معامله", 12f, navy, true))
+        panel.addViewSafely(text("نوع معامله", 12f, ink, true))
         panel.addViewSafely(deal, LinearLayout.LayoutParams(-1, dp(44)))
 
         fun plainField(label: String, hint: String): EditText {
-            panel.addViewSafely(text(label, 12f, navy, true))
+            panel.addViewSafely(text(label, 12f, ink, true))
             return field(hint).also { panel.addViewSafely(it, LinearLayout.LayoutParams(-1, dp(44))) }
         }
         val minArea = plainField("حداقل متراژ", "مثلاً ۷۰").apply { inputType = InputType.TYPE_CLASS_NUMBER }
@@ -923,11 +947,11 @@ class MainActivity : Activity() {
         }
         fun moneyRange(label: String): OnlineMoneyRange {
             val group = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            group.addViewSafely(text("حداقل $label (تومان)", 12f, navy, true))
+            group.addViewSafely(text("حداقل $label (تومان)", 12f, ink, true))
             val min = moneyField("حداقل مبلغ", "")
             group.addViewSafely(min, LinearLayout.LayoutParams(-1, dp(44)))
             attachOnlineAmountSuggestions(group, min, "حداقل $label")
-            group.addViewSafely(text("حداکثر $label (تومان)", 12f, navy, true))
+            group.addViewSafely(text("حداکثر $label (تومان)", 12f, ink, true))
             val max = moneyField("حداکثر مبلغ", "")
             group.addViewSafely(max, LinearLayout.LayoutParams(-1, dp(44)))
             attachOnlineAmountSuggestions(group, max, "حداکثر $label")
@@ -954,10 +978,10 @@ class MainActivity : Activity() {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
                 listOf("مهم نیست", "بدون اتاق", "۱", "۲", "۳", "۴ یا بیشتر"))
         }
-        panel.addViewSafely(text("تعداد اتاق", 12f, navy, true))
+        panel.addViewSafely(text("تعداد اتاق", 12f, ink, true))
         panel.addViewSafely(rooms, LinearLayout.LayoutParams(-1, dp(44)))
         fun yesNoSpinner(label: String): Spinner {
-            panel.addViewSafely(text(label, 12f, navy, true))
+            panel.addViewSafely(text(label, 12f, ink, true))
             return Spinner(this).apply {
                 adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
                     listOf("مهم نیست", "دارد", "ندارد"))
@@ -967,7 +991,7 @@ class MainActivity : Activity() {
         val storage = yesNoSpinner("انباری")
         val elevator = yesNoSpinner("آسانسور")
 
-        panel.addViewSafely(text("منابع دریافت کارت آگهی: دیوار، شیپور و کاشانو", 12f, navy, true))
+        panel.addViewSafely(text("منابع دریافت کارت آگهی: دیوار، شیپور و کاشانو", 12f, ink, true))
         panel.addViewSafely(button("جست‌وجو و استخراج آگهی‌های کاشانو", {
             try {
                 @Suppress("DEPRECATION")
@@ -981,18 +1005,18 @@ class MainActivity : Activity() {
         val searchButton = button("جست‌وجو در اینترنت", {}, true)
         panel.addViewSafely(searchButton, LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
         page.addViewSafely(panel, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(10) })
-        page.addViewSafely(text("نتایج جست‌وجو", 16f, navy, true))
+        page.addViewSafely(text("نتایج جست‌وجو", 16f, ink, true))
         page.addViewSafely(text("آگهی‌های منابع پشتیبانی‌شده به‌صورت کارت نمایش داده می‌شوند؛ با لمس هر کارت، صفحه اصلی آگهی داخل ملک‌یاب باز می‌شود.", 11f, muted))
         val resultSummary = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), dp(10), dp(10), dp(10))
             background = rounded(Color.rgb(18,32,51), 18, Color.rgb(183,143,65))
         }
-        val resultTitle = text("آماده جست‌وجو", 14f, navy, true)
+        val resultTitle = text("آماده جست‌وجو", 14f, ink, true)
         resultSummary.addViewSafely(resultTitle, LinearLayout.LayoutParams(-1, -2))
         val sourceCounts = text("دیوار: ۰ آگهی  ·  شیپور: ۰ آگهی", 11f, muted, true)
         resultSummary.addViewSafely(sourceCounts, LinearLayout.LayoutParams(-1, -2))
-        resultSummary.addViewSafely(text("فیلتر نمایش کارت‌ها", 11f, navy, true))
+        resultSummary.addViewSafely(text("فیلتر نمایش کارت‌ها", 11f, ink, true))
         val sourceFilter = Spinner(this).apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item,
                 listOf("همه آگهی‌ها", "فقط دیوار", "فقط شیپور", "فقط کاشانو"))
@@ -1039,7 +1063,7 @@ class MainActivity : Activity() {
                 }
                 card.addViewSafely(image, LinearLayout.LayoutParams(dp(104), dp(96)).apply { marginEnd = dp(9) })
                 val details = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-                details.addViewSafely(text(ad.title, 13f, navy, true))
+                details.addViewSafely(text(ad.title, 13f, ink, true))
                 if (ad.price.isNotBlank()) details.addViewSafely(text(ad.price, 12f, blue, true))
                 if (ad.summary.isNotBlank()) details.addViewSafely(text(ad.summary, 10f, muted).apply { maxLines = 2 })
                 details.addViewSafely(text("منبع: " + ad.source + "  ·  مشاهده آگهی اصلی داخل ملک‌یاب", 10f, muted))

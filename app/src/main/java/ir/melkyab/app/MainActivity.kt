@@ -18,7 +18,10 @@ import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.*
+import eightbitlab.com.blurview.BlurTarget
+import eightbitlab.com.blurview.BlurView
 import org.json.JSONArray
 import java.text.DecimalFormat
 
@@ -123,6 +126,7 @@ class MainActivity : Activity() {
     private val gold = Color.rgb(244, 190, 82)
     private val ink = Color.rgb(239, 234, 220)
     private val softGold = Color.rgb(35, 47, 65)
+    private var glassBlurTarget: BlurTarget? = null
 
     private fun choosePhotos() {
         val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -205,6 +209,22 @@ class MainActivity : Activity() {
         ).apply {
             cornerRadius = dp(radius).toFloat()
             setStroke(dp(1), Color.argb(150, 220, 231, 242))
+        }
+
+    // A real backdrop blur: BlurView samples only the city background layer,
+    // while the panel's own labels and controls stay crisp.
+    private fun glassFrame(radius: Int = 20, stronger: Boolean = false): BlurView =
+        BlurView(this).apply {
+            val overlay = if (stronger) Color.argb(142, 10, 23, 41)
+                else Color.argb(112, 13, 29, 49)
+            background = glassSurface(radius, stronger)
+            glassBlurTarget?.let { target ->
+                setupWith(target).setBlurRadius(22f)
+                setOverlayColor(overlay)
+                outlineProvider = ViewOutlineProvider.BACKGROUND
+                clipToOutline = true
+            }
+            elevation = dp(5).toFloat()
         }
 
     private fun text(value: String, size: Float = 15f, color: Int = navy, bold: Boolean = false): TextView = TextView(this).apply {
@@ -496,16 +516,21 @@ class MainActivity : Activity() {
         val root = FrameLayout(this).apply {
             setBackgroundColor(Color.rgb(7,17,31))
         }
+        // BlurTarget contains only the background artwork. Glass panels are siblings
+        // above it, so they can sample the city without capturing themselves recursively.
+        val blurTarget = BlurTarget(this)
+        glassBlurTarget = blurTarget
         val backdrop = ImageView(this).apply {
             setImageBitmap(referenceCityBitmap())
             scaleType = ImageView.ScaleType.CENTER_CROP
             contentDescription = "پس‌زمینه شبانه شهر"
         }
-        root.addView(backdrop, FrameLayout.LayoutParams(-1, -1))
+        blurTarget.addView(backdrop, FrameLayout.LayoutParams(-1, -1))
         val backdropVeil = View(this).apply {
             setBackgroundColor(Color.argb(24, 5, 14, 27))
         }
-        root.addView(backdropVeil, FrameLayout.LayoutParams(-1, -1))
+        blurTarget.addView(backdropVeil, FrameLayout.LayoutParams(-1, -1))
+        root.addView(blurTarget, FrameLayout.LayoutParams(-1, -1))
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10),dp(7),dp(10),0)
@@ -545,12 +570,12 @@ class MainActivity : Activity() {
         }, LinearLayout.LayoutParams(-1, dp(21)))
         page.addViewSafely(slogan, LinearLayout.LayoutParams(-1, dp(50)).apply { bottomMargin = dp(7) })
 
-        val searchPanel = LinearLayout(this).apply {
+        val searchPanel = glassFrame(24)
+        val searchPanelContent = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(9),dp(5),dp(9),dp(5))
-            background = glassSurface(24)
-            elevation = dp(5).toFloat()
         }
+        searchPanel.addViewSafely(searchPanelContent, FrameLayout.LayoutParams(-1, -1))
         search = field("عنوان")
         search.background = rounded(Color.argb(148,20,34,54),13,Color.rgb(205,160,73))
         search.setTextColor(ink)
@@ -564,7 +589,7 @@ class MainActivity : Activity() {
                 true
             } else false
         }
-        searchPanel.addViewSafely(search, LinearLayout.LayoutParams(-1, dp(48)))
+        searchPanelContent.addViewSafely(search, LinearLayout.LayoutParams(-1, dp(48)))
         page.addViewSafely(searchPanel, LinearLayout.LayoutParams(-1, dp(60)).apply { bottomMargin = dp(9) })
         list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         page.addViewSafely(list)
@@ -574,16 +599,17 @@ class MainActivity : Activity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
-        val addCard = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(8),dp(3),dp(8),dp(3))
-            background = glassSurface(21)
-            elevation = dp(6).toFloat()
+        val addCard = glassFrame(21).apply {
             isClickable = true
             isFocusable = true
             setOnClickListener { openEditorSafely(null) }
         }
+        val addCardContent = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(8),dp(3),dp(8),dp(3))
+        }
+        addCard.addViewSafely(addCardContent, FrameLayout.LayoutParams(-1, -1))
         val plus = TextView(this).apply {
             text = "+"
             textSize = 26f
@@ -591,7 +617,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             background = rounded(Color.rgb(53,72,96), 14, Color.rgb(190,155,85))
         }
-        addCard.addViewSafely(plus, LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(12) })
+        addCardContent.addViewSafely(plus, LinearLayout.LayoutParams(dp(30), dp(30)).apply { marginEnd = dp(12) })
         val addText = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_VERTICAL }
         addText.addViewSafely(text("ثبت ملک جدید", 16f, Color.WHITE, true).apply {
             includeFontPadding = false
@@ -602,7 +628,7 @@ class MainActivity : Activity() {
             setPadding(0, dp(2), 0, dp(2))
             maxLines = 1
         }, LinearLayout.LayoutParams(-1, dp(20)))
-        addCard.addViewSafely(addText, LinearLayout.LayoutParams(0, -2, 1f))
+        addCardContent.addViewSafely(addText, LinearLayout.LayoutParams(0, -2, 1f))
         page.addViewSafely(addCard, LinearLayout.LayoutParams(-1, dp(78)).apply { bottomMargin = dp(13); topMargin = dp(2) })
 
         val categoryTitle = LinearLayout(this).apply {
@@ -623,16 +649,17 @@ class MainActivity : Activity() {
                     "رهن و اجاره" -> Color.rgb(91,119,157)
                     else -> Color.rgb(125,104,82)
                 }
-                val tile = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    gravity = Gravity.CENTER
-                    setPadding(dp(5),dp(3),dp(5),dp(3))
-                    background = glassSurface(25)
-                    elevation = dp(5).toFloat()
+                val tile = glassFrame(25).apply {
                     isClickable = true
                     isFocusable = true
                     setOnClickListener { activeSection = category; dealFilter = "همه"; renderSection() }
                 }
+                val tileContent = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                    setPadding(dp(5),dp(3),dp(5),dp(3))
+                }
+                tile.addViewSafely(tileContent, FrameLayout.LayoutParams(-1, -1))
                 val symbol = when(category) {
                     "فروش" -> "↗"
                     "رهن" -> "⌂"
@@ -646,8 +673,8 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER
                     background = rounded(Color.argb(145,17,29,46), 30, accent)
                 }
-                tile.addViewSafely(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
-                tile.addViewSafely(text(category, 16f, Color.rgb(244,235,215), true).apply {
+                tileContent.addViewSafely(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
+                tileContent.addViewSafely(text(category, 16f, Color.rgb(244,235,215), true).apply {
                     gravity = Gravity.CENTER
                     textAlignment = View.TEXT_ALIGNMENT_CENTER
                     maxLines = 2
@@ -662,22 +689,23 @@ class MainActivity : Activity() {
             page.addViewSafely(row)
         }
 
-        val onlineCard = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), dp(8), dp(12), dp(8))
-            background = glassSurface(20)
-            elevation = dp(4).toFloat()
+        val onlineCard = glassFrame(20).apply {
             isClickable = true
             isFocusable = true
             setOnClickListener { activeSection = "جست‌وجوی آنلاین"; renderOnlineSearch() }
         }
-        onlineCard.addViewSafely(text("⌕", 28f, Color.WHITE, true), LinearLayout.LayoutParams(dp(42), dp(48)))
+        val onlineCardContent = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+        }
+        onlineCard.addViewSafely(onlineCardContent, FrameLayout.LayoutParams(-1, -1))
+        onlineCardContent.addViewSafely(text("⌕", 28f, Color.WHITE, true), LinearLayout.LayoutParams(dp(42), dp(48)))
         val onlineTexts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         onlineTexts.addViewSafely(text("جست‌وجوی آنلاین ملک", 16f, Color.WHITE, true))
         onlineTexts.addViewSafely(text("جست‌وجو در دیوار، شیپور و سایت‌های ملکی", 11f, Color.rgb(224,239,239)))
-        onlineCard.addViewSafely(onlineTexts, LinearLayout.LayoutParams(0, -2, 1f))
-        onlineCard.addViewSafely(text("‹", 25f, Color.WHITE, true))
+        onlineCardContent.addViewSafely(onlineTexts, LinearLayout.LayoutParams(0, -2, 1f))
+        onlineCardContent.addViewSafely(text("‹", 25f, Color.WHITE, true))
         page.addViewSafely(onlineCard, LinearLayout.LayoutParams(-1, dp(70)).apply {
             topMargin = dp(8); bottomMargin = dp(12)
         })

@@ -20,8 +20,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.widget.*
-import eightbitlab.com.blurview.BlurTarget
-import eightbitlab.com.blurview.BlurView
 import org.json.JSONArray
 import java.text.DecimalFormat
 
@@ -126,7 +124,6 @@ class MainActivity : Activity() {
     private val gold = Color.rgb(244, 190, 82)
     private val ink = Color.rgb(239, 234, 220)
     private val softGold = Color.rgb(35, 47, 65)
-    private var glassBlurTarget: BlurTarget? = null
 
     private fun choosePhotos() {
         val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -192,39 +189,32 @@ class MainActivity : Activity() {
     private fun rounded(color: Int, radius: Int = 16, stroke: Int = Color.TRANSPARENT): GradientDrawable =
         GradientDrawable().apply { setColor(color); cornerRadius = dp(radius).toFloat(); if (stroke != Color.TRANSPARENT) setStroke(dp(1), stroke) }
 
-    // Frosted-glass surfaces: translucent layered navy, cool glass rim and a soft highlight.
-    // The city artwork remains visible through these surfaces instead of being covered by opaque cards.
+    // Clear smoked-glass panels: the city photo stays sharp and visible underneath.
+    // Very low-opacity navy tint, a fine cool rim and a subtle top-to-bottom sheen.
     private fun glassSurface(radius: Int = 20, stronger: Boolean = false): GradientDrawable =
         GradientDrawable(
             GradientDrawable.Orientation.TL_BR,
             if (stronger) intArrayOf(
-                Color.argb(190, 12, 25, 43),
-                Color.argb(154, 29, 47, 67),
-                Color.argb(184, 10, 22, 39)
+                Color.argb(74, 10, 22, 38),
+                Color.argb(56, 28, 45, 64),
+                Color.argb(70, 8, 19, 34)
             ) else intArrayOf(
-                Color.argb(126, 18, 34, 54),
-                Color.argb(88, 39, 58, 78),
-                Color.argb(118, 12, 26, 45)
+                Color.argb(42, 12, 27, 45),
+                Color.argb(24, 39, 58, 78),
+                Color.argb(38, 9, 22, 39)
             )
         ).apply {
             cornerRadius = dp(radius).toFloat()
-            setStroke(dp(1), Color.argb(150, 220, 231, 242))
+            setStroke(dp(1), Color.argb(105, 225, 237, 248))
         }
 
-    // A real backdrop blur: BlurView samples only the city background layer,
-    // while the panel's own labels and controls stay crisp.
-    private fun glassFrame(radius: Int = 20, stronger: Boolean = false): BlurView =
-        BlurView(this).apply {
-            val overlay = if (stronger) Color.argb(142, 10, 23, 41)
-                else Color.argb(112, 13, 29, 49)
+    // Plain FrameLayout by design: no backdrop blur or image filtering is applied.
+    private fun glassFrame(radius: Int = 20, stronger: Boolean = false): FrameLayout =
+        FrameLayout(this).apply {
             background = glassSurface(radius, stronger)
-            glassBlurTarget?.let { target ->
-                setupWith(target).setBlurRadius(22f)
-                setOverlayColor(overlay)
-                outlineProvider = ViewOutlineProvider.BACKGROUND
-                clipToOutline = true
-            }
-            elevation = dp(5).toFloat()
+            outlineProvider = ViewOutlineProvider.BACKGROUND
+            clipToOutline = true
+            elevation = dp(4).toFloat()
         }
 
     private fun text(value: String, size: Float = 15f, color: Int = navy, bold: Boolean = false): TextView = TextView(this).apply {
@@ -512,25 +502,20 @@ class MainActivity : Activity() {
         window.navigationBarColor = Color.rgb(9,18,32)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = 0
-        // Full-screen background image; all interactive content sits above a dark veil.
+        // Full-screen city image stays crisp; only a very light global tint protects text contrast.
         val root = FrameLayout(this).apply {
             setBackgroundColor(Color.rgb(7,17,31))
         }
-        // BlurTarget contains only the background artwork. Glass panels are siblings
-        // above it, so they can sample the city without capturing themselves recursively.
-        val blurTarget = BlurTarget(this)
-        glassBlurTarget = blurTarget
         val backdrop = ImageView(this).apply {
             setImageBitmap(referenceCityBitmap())
             scaleType = ImageView.ScaleType.CENTER_CROP
             contentDescription = "پس‌زمینه شبانه شهر"
         }
-        blurTarget.addView(backdrop, FrameLayout.LayoutParams(-1, -1))
+        root.addView(backdrop, FrameLayout.LayoutParams(-1, -1))
         val backdropVeil = View(this).apply {
-            setBackgroundColor(Color.argb(24, 5, 14, 27))
+            setBackgroundColor(Color.argb(7, 5, 14, 27))
         }
-        blurTarget.addView(backdropVeil, FrameLayout.LayoutParams(-1, -1))
-        root.addView(blurTarget, FrameLayout.LayoutParams(-1, -1))
+        root.addView(backdropVeil, FrameLayout.LayoutParams(-1, -1))
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10),dp(7),dp(10),0)
@@ -577,7 +562,7 @@ class MainActivity : Activity() {
         }
         searchPanel.addViewSafely(searchPanelContent, FrameLayout.LayoutParams(-1, -1))
         search = field("عنوان")
-        search.background = rounded(Color.argb(148,20,34,54),13,Color.rgb(205,160,73))
+        search.background = rounded(Color.argb(58,20,34,54),13,Color.argb(150,205,160,73))
         search.setTextColor(ink)
         search.setHintTextColor(muted)
         search.imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
@@ -671,7 +656,7 @@ class MainActivity : Activity() {
                     textSize = 22f
                     setTextColor(accent)
                     gravity = Gravity.CENTER
-                    background = rounded(Color.argb(145,17,29,46), 30, accent)
+                    background = rounded(Color.argb(62,17,29,46), 30, accent)
                 }
                 tileContent.addViewSafely(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
                 tileContent.addViewSafely(text(category, 16f, Color.rgb(244,235,215), true).apply {
@@ -1298,39 +1283,3 @@ class MainActivity : Activity() {
         val sc = ScrollView(this)
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val category = if (p.kind == "کلنگی و مستغلات" || p.kind == "زمین و کلنگی") "کلنگی و مستغلات" else p.deal
-        val sqm = rawMoney(p.area).toLongOrNull() ?: 0L
-        val pricePerMeter = if (p.deal == "فروش" && sqm > 0) formatMoney(((p.price.toLongOrNull() ?: 0L) / sqm).toString()) else ""
-        listOf("دسته‌بندی: " + category, "عنوان: " + p.title, "نوع ملک: " + p.kind,
-            "متراژ: " + p.area + " متر", "آدرس: " + p.address,
-            "قیمت کل: " + formatMoney(p.price), "قیمت هر متر مربع: " + pricePerMeter,
-            "مبلغ رهن: " + formatMoney(p.deposit), "اجاره ماهانه: " + formatMoney(p.rent),
-            "تعداد طبقات ساختمان: " + p.buildingFloors, "طبقه ملک: " + p.floor,
-            "تک‌واحدی: " + p.singleUnit,
-            if (p.singleUnit == "خیر") "تعداد واحد: " + p.unitsPerFloor else "",
-            "پارکینگ: " + p.parking, "آسانسور: " + p.elevator, "انباری: " + p.storage,
-            "بالکن: " + p.balcony, "سیستم سرمایش: " + p.cooling, "سیستم گرمایش: " + p.heating,
-            "جهت ملک: " + p.direction, "نمای ساختمان: " + p.facade, "حمام مستر: " + p.master,
-            "سرویس بهداشتی: " + p.toilet, "کابینت: " + p.cabinet, "کف‌پوش: " + p.flooring,
-            "توضیحات: " + p.notes, "تاریخ ثبت: " + persianDate(p.createdAt))
-            .filter { it.substringAfter(": ").isNotBlank() }
-            .forEach { content.addViewSafely(text(it,14f,navy)) }
-        sc.addViewSafely(content); box.addViewSafely(sc)
-        AlertDialog.Builder(this).setTitle(p.title.ifBlank { "مشخصات آگهی" }).setView(box)
-            .setNeutralButton("عکس‌ها") { _,_ -> showGallery(p) }
-            .setNegativeButton("بستن",null)
-            .setPositiveButton("ویرایش") { _,_ -> showEditor(p) }.show()
-    }
-
-    private fun showGallery(p: Property) {
-        val photos = try { val a = JSONArray(p.photos); MutableList(a.length()) { i -> a.getString(i) } } catch (_: Exception) { mutableListOf<String>() }
-        currentGalleryPhotos = photos
-        if (photos.isEmpty()) { Toast.makeText(this,"برای این ملک عکسی ثبت نشده است",Toast.LENGTH_SHORT).show(); return }
-        val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12),dp(8),dp(12),dp(8)) }
-        val scroll = ScrollView(this)
-        val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        photos.forEachIndexed { index, path ->
-            val image = ImageView(this).apply {
-                adjustViewBounds = true
-                scaleType = ImageView.ScaleType.FIT_CENTER
-                try { setImageURI(Uri.parse(path)) } catch (_: Exception) {}
-                setOnClickListener { showLargePhoto(path, index + 1, photos.size) }

@@ -709,13 +709,14 @@ class MainActivity : Activity() {
             setPadding(dp(6), dp(2), dp(6), dp(2))
             setBackgroundColor(Color.TRANSPARENT)
         }
-        credit.addViewSafely(text("طراح: مهندس رئوف‌نژاد", 11f, Color.rgb(224,184,105), true).apply {
+        credit.addViewSafely(text("طراح: مهندس رئوف‌نژاد", 15f, Color.rgb(255,211,125), true).apply {
             gravity = Gravity.CENTER
             includeFontPadding = true
-            setPadding(0, 0, 0, 0)
-            minHeight = dp(24)
+            setPadding(0, dp(3), 0, dp(3))
+            minHeight = dp(32)
+            letterSpacing = 0.02f
         }, LinearLayout.LayoutParams(-1, -2))
-        content.addViewSafely(credit, LinearLayout.LayoutParams(-1, dp(42)))
+        content.addViewSafely(credit, LinearLayout.LayoutParams(-1, dp(50)))
         root.addView(content, FrameLayout.LayoutParams(-1, -1))
         setContentView(root)
         list.removeAllViews()

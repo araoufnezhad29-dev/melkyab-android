@@ -11,41 +11,23 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
-      - name: Fetch approved Unsplash night city background
-        env:
-          PHOTO_PAGE: https://unsplash.com/photos/city-skyline-with-illuminated-skyscrapers-at-night-y1aJw1VMJ54
+      - name: Fetch high-resolution Tehran night background from Pexels
         run: |
           python3 - <<'PY'
-          import base64, html, re, urllib.request
+          import base64, urllib.request
           from pathlib import Path
-          from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
-          page = urllib.request.Request(
-              __import__('os').environ['PHOTO_PAGE'],
-              headers={'User-Agent': 'Mozilla/5.0 (compatible; MelkYabBuild/1.0)'}
-          )
-          with urllib.request.urlopen(page, timeout=30) as r:
-              document = r.read().decode('utf-8', 'replace')
-          match = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)', document, re.I)
-          if not match:
-              match = re.search(r'<meta[^>]+content="([^"]+)"[^>]+property="og:image"', document, re.I)
-          if not match:
-              raise SystemExit('Unsplash og:image metadata was not found')
-          image_url = html.unescape(match.group(1))
-          parts = urlsplit(image_url)
-          params = dict(parse_qsl(parts.query, keep_blank_values=True))
-          params.update({'w': '2400', 'q': '92', 'fm': 'jpg', 'fit': 'max'})
-          image_url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(params), parts.fragment))
-          request = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
-          with urllib.request.urlopen(request, timeout=60) as r:
-              image = r.read()
-              content_type = r.headers.get('Content-Type', '')
-          if len(image) < 300_000 or len(image) > 25_000_000:
+          image_url = 'https://images.pexels.com/photos/3799150/pexels-photo-3799150.jpeg?auto=compress&cs=tinysrgb&w=2400&h=4267&fit=crop'
+          request = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0 (compatible; MelkYabBuild/1.0)'})
+          with urllib.request.urlopen(request, timeout=60) as response:
+              image = response.read()
+              content_type = response.headers.get('Content-Type', '')
+          if len(image) < 100_000 or len(image) > 20_000_000:
               raise SystemExit(f'Unexpected image size: {len(image)} bytes')
-          if not (image.startswith(b'\xff\xd8\xff') or image.startswith(b'\x89PNG\r\n\x1a\n') or image[:4] == b'RIFF'):
-              raise SystemExit(f'Download did not return a recognized image (Content-Type: {content_type})')
+          if not image.startswith(b'\\xff\\xd8\\xff'):
+              raise SystemExit(f'Download did not return JPEG (Content-Type: {content_type})')
           target = Path('app/src/main/assets/home_city_header.jpg.b64')
           target.write_text(base64.b64encode(image).decode('ascii'))
-          print(f'High-resolution background fetched successfully: {len(image)} bytes; content-type={content_type}; url={image_url}')
+          print(f'Pexels Tehran night background fetched: {len(image)} bytes; {content_type}')
           PY
       - name: Set up Java
         uses: actions/setup-java@v4

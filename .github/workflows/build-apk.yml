@@ -18,6 +18,7 @@ jobs:
           python3 - <<'PY'
           import base64, html, re, urllib.request
           from pathlib import Path
+          from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
           page = urllib.request.Request(
               __import__('os').environ['PHOTO_PAGE'],
               headers={'User-Agent': 'Mozilla/5.0 (compatible; MelkYabBuild/1.0)'}
@@ -30,17 +31,21 @@ jobs:
           if not match:
               raise SystemExit('Unsplash og:image metadata was not found')
           image_url = html.unescape(match.group(1))
+          parts = urlsplit(image_url)
+          params = dict(parse_qsl(parts.query, keep_blank_values=True))
+          params.update({'w': '2400', 'q': '92', 'fm': 'jpg', 'fit': 'max'})
+          image_url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(params), parts.fragment))
           request = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
           with urllib.request.urlopen(request, timeout=60) as r:
               image = r.read()
               content_type = r.headers.get('Content-Type', '')
-          if len(image) < 100_000 or len(image) > 20_000_000:
+          if len(image) < 300_000 or len(image) > 25_000_000:
               raise SystemExit(f'Unexpected image size: {len(image)} bytes')
           if not (image.startswith(b'\xff\xd8\xff') or image.startswith(b'\x89PNG\r\n\x1a\n') or image[:4] == b'RIFF'):
               raise SystemExit(f'Download did not return a recognized image (Content-Type: {content_type})')
           target = Path('app/src/main/assets/home_city_header.jpg.b64')
           target.write_text(base64.b64encode(image).decode('ascii'))
-          print(f'Background fetched successfully: {len(image)} bytes; content-type={content_type}')
+          print(f'High-resolution background fetched successfully: {len(image)} bytes; content-type={content_type}; url={image_url}')
           PY
       - name: Set up Java
         uses: actions/setup-java@v4

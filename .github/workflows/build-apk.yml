@@ -16,7 +16,7 @@ jobs:
           python3 - <<'PY'
           import base64, urllib.request
           from pathlib import Path
-          image_url = 'https://images.pexels.com/photos/3799150/pexels-photo-3799150.jpeg?auto=compress&cs=tinysrgb&w=2400&h=4267&fit=crop'
+          image_url = 'https://images.pexels.com/photos/14629040/pexels-photo-14629040.jpeg?auto=compress&cs=tinysrgb&w=2400&h=3600&fit=crop'
           request = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0 (compatible; MelkYabBuild/1.0)'})
           with urllib.request.urlopen(request, timeout=60) as response:
               image = response.read()
@@ -27,7 +27,7 @@ jobs:
               raise SystemExit(f'Download did not return JPEG (Content-Type: {content_type})')
           target = Path('app/src/main/assets/home_city_header.jpg.b64')
           target.write_text(base64.b64encode(image).decode('ascii'))
-          print(f'Pexels Tehran night background fetched: {len(image)} bytes; {content_type}')
+          print(f'Pexels high-resolution Tehran night background fetched: {len(image)} bytes; {content_type}')
           PY
       - name: Set up Java
         uses: actions/setup-java@v4

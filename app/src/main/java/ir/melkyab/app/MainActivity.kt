@@ -650,7 +650,7 @@ class MainActivity : Activity() {
                     textSize = 22f
                     setTextColor(accent)
                     gravity = Gravity.CENTER
-                    background = rounded(Color.argb(54,17,29,46), 30, Color.argb(155,accent))
+                    background = rounded(Color.argb(54,17,29,46), 30, Color.argb(155, Color.red(accent), Color.green(accent), Color.blue(accent)))
                 }
                 tile.addViewSafely(iconCircle, LinearLayout.LayoutParams(dp(36), dp(36)).apply { bottomMargin = dp(7) })
                 tile.addViewSafely(text(category, 16f, Color.rgb(244,235,215), true).apply {

@@ -188,6 +188,25 @@ class MainActivity : Activity() {
     private fun rounded(color: Int, radius: Int = 16, stroke: Int = Color.TRANSPARENT): GradientDrawable =
         GradientDrawable().apply { setColor(color); cornerRadius = dp(radius).toFloat(); if (stroke != Color.TRANSPARENT) setStroke(dp(1), stroke) }
 
+    // Frosted-glass surfaces: translucent layered navy, cool glass rim and a soft highlight.
+    // The city artwork remains visible through these surfaces instead of being covered by opaque cards.
+    private fun glassSurface(radius: Int = 20, stronger: Boolean = false): GradientDrawable =
+        GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            if (stronger) intArrayOf(
+                Color.argb(190, 12, 25, 43),
+                Color.argb(154, 29, 47, 67),
+                Color.argb(184, 10, 22, 39)
+            ) else intArrayOf(
+                Color.argb(126, 18, 34, 54),
+                Color.argb(88, 39, 58, 78),
+                Color.argb(118, 12, 26, 45)
+            )
+        ).apply {
+            cornerRadius = dp(radius).toFloat()
+            setStroke(dp(1), Color.argb(150, 220, 231, 242))
+        }
+
     private fun text(value: String, size: Float = 15f, color: Int = navy, bold: Boolean = false): TextView = TextView(this).apply {
         text = value; textSize = size; setTextColor(color); gravity = Gravity.CENTER_VERTICAL
         if (bold) setTypeface(null, Typeface.BOLD)
@@ -529,8 +548,8 @@ class MainActivity : Activity() {
         val searchPanel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(9),dp(5),dp(9),dp(5))
-            background = rounded(Color.argb(132,24,39,59),24,Color.rgb(190,151,82))
-            elevation = dp(2).toFloat()
+            background = glassSurface(24)
+            elevation = dp(5).toFloat()
         }
         search = field("عنوان")
         search.background = rounded(Color.argb(148,20,34,54),13,Color.rgb(205,160,73))
@@ -559,10 +578,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8),dp(3),dp(8),dp(3))
-            background = GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.argb(142,13,27,47), Color.argb(154,38,58,82), Color.argb(142,13,27,47))
-            ).apply { cornerRadius = dp(21).toFloat(); setStroke(dp(1), Color.rgb(205,166,91)) }
+            background = glassSurface(21)
             elevation = dp(6).toFloat()
             isClickable = true
             isFocusable = true
@@ -611,11 +627,7 @@ class MainActivity : Activity() {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
                     setPadding(dp(5),dp(3),dp(5),dp(3))
-                    background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                        intArrayOf(Color.argb(132,28,44,64), Color.argb(142,20,34,52))).apply {
-                        cornerRadius = dp(25).toFloat()
-                        setStroke(dp(1), Color.rgb(190,151,82))
-                    }
+                    background = glassSurface(25)
                     elevation = dp(5).toFloat()
                     isClickable = true
                     isFocusable = true
@@ -654,11 +666,7 @@ class MainActivity : Activity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), dp(8), dp(12), dp(8))
-            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.argb(178,20,126,132), Color.argb(174,13,73,91))).apply {
-                cornerRadius = dp(20).toFloat()
-                setStroke(dp(1), Color.rgb(205,166,91))
-            }
+            background = glassSurface(20)
             elevation = dp(4).toFloat()
             isClickable = true
             isFocusable = true
@@ -777,13 +785,13 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), dp(10), dp(12), dp(8))
             background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                intArrayOf(Color.rgb(250,248,242), Color.rgb(239,233,219)))
+                intArrayOf(Color.rgb(7,17,31), Color.rgb(15,31,50), Color.rgb(7,17,31)))
         }
         val toolbar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8), dp(7), dp(8), dp(7))
-            background = rounded(navy, 17, gold)
+            background = glassSurface(17, true)
         }
         toolbar.addViewSafely(button("‹ بازگشت", { activeSection = null; render() }),
             LinearLayout.LayoutParams(-2, dp(42)))
@@ -795,7 +803,7 @@ class MainActivity : Activity() {
         val panel = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(12), dp(10), dp(12), dp(10))
-            background = rounded(Color.rgb(19,33,53), 20, Color.rgb(183,143,65))
+            background = glassSurface(20, true)
         }
         panel.addViewSafely(text("مشخصات ملک موردنظر", 16f, ink, true))
         panel.addViewSafely(text("شهر جست‌وجو", 12f, ink, true))
@@ -1298,578 +1306,3 @@ class MainActivity : Activity() {
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 try { setImageURI(Uri.parse(path)) } catch (_: Exception) {}
                 setOnClickListener { showLargePhoto(path, index + 1, photos.size) }
-            }
-            column.addViewSafely(text("تصویر " + (index + 1), 12f, muted))
-            column.addViewSafely(image, LinearLayout.LayoutParams(-1, dp(210)).apply { bottomMargin = dp(12) })
-        }
-        scroll.addViewSafely(column)
-        container.addViewSafely(scroll)
-        AlertDialog.Builder(this).setTitle("تصاویر ملک - " + photos.size + " عکس").setView(container)
-            .setPositiveButton("بستن",null).show()
-    }
-
-    private fun showLargePhoto(path: String, number: Int, total: Int) {
-        var index = number - 1
-        val image = ImageView(this).apply {
-            adjustViewBounds = true; scaleType = ImageView.ScaleType.FIT_CENTER
-            try { setImageURI(Uri.parse(path)) } catch (_: Exception) {}
-            setBackgroundColor(Color.BLACK)
-        }
-        val counter = text("تصویر $number از $total",14f,navy,true)
-        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        content.addViewSafely(counter)
-        content.addViewSafely(image, LinearLayout.LayoutParams(-1,dp(420)))
-        var startX = 0f
-        image.setOnTouchListener { _, event ->
-            when (event.action) {
-                android.view.MotionEvent.ACTION_DOWN -> { startX = event.x; true }
-                android.view.MotionEvent.ACTION_UP -> {
-                    val delta = event.x - startX
-                    if (kotlin.math.abs(delta) > dp(45) && currentGalleryPhotos.isNotEmpty()) {
-                        index = if (delta < 0) (index + 1) % currentGalleryPhotos.size
-                            else (index - 1 + currentGalleryPhotos.size) % currentGalleryPhotos.size
-                        image.setImageURI(Uri.parse(currentGalleryPhotos[index]))
-                        counter.text = "تصویر " + (index + 1) + " از " + currentGalleryPhotos.size
-                    }
-                    true
-                }
-                else -> true
-            }
-        }
-        AlertDialog.Builder(this).setView(content).setPositiveButton("بستن",null).show()
-    }
-
-    private fun refreshList() {
-        if (!::list.isInitialized) return
-        list.removeAllViews()
-        val query = if (::search.isInitialized) search.text.toString() else ""
-        // Do not show the entire database until the user actually starts searching.
-        if (query.isBlank() && activeSection == null) return
-        val allItems = db.all()
-        val normalized = query.map { ch -> when(ch) {
-            in '۰'..'۹' -> ('0'.code + ch.code - '۰'.code).toChar()
-            in '٠'..'٩' -> ('0'.code + ch.code - '٠'.code).toChar()
-            else -> ch
-        } }.joinToString("").lowercase().replace("ي","ی").replace("ك","ک").trim()
-        // Offer matching values from every saved property field as the user types.
-        val suggestionValues = linkedSetOf<String>()
-        allItems.forEach { p ->
-            listOf(
-                p.title,p.kind,p.deal,p.address,p.city,p.area,p.price,p.deposit,p.rent,
-                p.unitCount,p.floor,p.buildingFloors,p.singleUnit,p.unitsPerFloor,p.parking,p.elevator,p.storage,p.balcony,p.cooling,p.heating,
-                p.direction,p.facade,p.master,p.toilet,p.cabinet,p.flooring
-            ).filter { it.isNotBlank() }.forEach { value ->
-                val normalizedValue = value.lowercase().replace("ي","ی").replace("ك","ک")
-                if (normalizedValue.contains(normalized)) suggestionValues.add(value.trim())
-            }
-        }
-        val suggestions = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val suggestionScroll = HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-            addView(suggestions)
-        }
-        if (suggestionValues.isNotEmpty()) {
-            list.addViewSafely(text("پیشنهادها",10f,muted,true))
-            suggestionValues.take(10).forEach { value ->
-                val chip = TextView(this).apply {
-                    text = value
-                    textSize = 10f
-                    setTextColor(blue)
-                    gravity = Gravity.CENTER
-                    setPadding(dp(9),dp(7),dp(9),dp(7))
-                    background = rounded(Color.WHITE,9,Color.rgb(220,227,236))
-                    isClickable = true
-                    isFocusable = true
-                    setOnClickListener {
-                        search.setText(value)
-                        search.setSelection(search.text.length)
-                    }
-                }
-                suggestions.addViewSafely(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
-            }
-            list.addViewSafely(suggestionScroll,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
-        }
-        // A number typed alone opens quick budget choices instead of searching for "2 toman".
-        val bareNumberQuery = normalized.matches(Regex("""\d+"""))
-        if (bareNumberQuery) {
-            val digit = normalized.toLongOrNull() ?: return
-            val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
-            val chips = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-            val horizontal = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(chips) }
-            list.addViewSafely(text("جست‌وجو بر اساس بودجه",10f,muted,true))
-            list.addViewSafely(horizontal,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(5) })
-            scales.forEach { scale ->
-                val amount = scaledSuggestionAmount(digit, scale)
-                val label = compactMoneyLabel(amount)
-                val chip = TextView(this).apply {
-                    text = label; textSize = 10f; setTextColor(blue); gravity = Gravity.CENTER
-                    setPadding(dp(9),dp(7),dp(9),dp(7))
-                    background = rounded(Color.WHITE,9,Color.rgb(220,227,236))
-                    isClickable = true; isFocusable = true
-                    setOnClickListener { search.setText(label); search.setSelection(search.text.length) }
-                }
-                chips.addViewSafely(chip,LinearLayout.LayoutParams(-2,-2).apply { marginEnd=dp(5) })
-            }
-        }
-        // Parse an optional deal prefix first, then search all remaining terms and amounts.
-        val queryBody = when {
-            normalized.startsWith("رهن و اجاره") -> normalized.removePrefix("رهن و اجاره").trim()
-            normalized.startsWith("فروش") -> normalized.removePrefix("فروش").trim()
-            normalized.startsWith("اجاره") -> normalized.removePrefix("اجاره").trim()
-            normalized.startsWith("رهن") -> normalized.removePrefix("رهن").trim()
-            else -> normalized
-        }
-        val explicitDeal = when {
-            normalized.startsWith("فروش") -> "فروش"
-            normalized.startsWith("رهن و اجاره") || normalized.startsWith("اجاره") -> "رهن و اجاره"
-            normalized.startsWith("رهن") -> "رهن کامل"
-            else -> null
-        }
-        val amountPattern = Regex("""(?<!\d)(\d{1,3}(?:[.,٬]\d{3})+|\d+(?:[.,]\d+)?)\s*(میلیارد|میلیون|هزار)?""")
-        val amountTokens = amountPattern.findAll(queryBody).toList()
-        val textWords = queryBody.replace(amountPattern, " ")
-            .split(Regex("""[\s,،٬]+"""))
-            .filter { it.isNotBlank() && it !in listOf("تا","حدود","قیمت","متر","متراژ","تومان","تومن","میلیارد","میلیون","هزار","پیش") }
-        val bareBudget = queryBody.matches(Regex("""\d+"""))
-        val bareBudgetValue = if (bareBudget) queryBody.toLongOrNull() else null
-        val found = allItems.filter { p ->
-            val searchable = listOf(
-                p.title,p.notes,p.kind,p.deal,p.address,p.city,p.area,p.price,p.deposit,p.rent,
-                p.unitCount,p.floor,p.buildingFloors,p.singleUnit,p.unitsPerFloor,p.parking,p.elevator,p.storage,p.balcony,p.cooling,p.heating,
-                p.direction,p.facade,p.master,p.toilet,p.cabinet,p.flooring
-            ).joinToString(" ").lowercase().replace("ي","ی").replace("ك","ک")
-            val textOk = textWords.all { word ->
-                searchable.contains(word) || (word == "پیش" && p.deal != "فروش")
-            }
-            val dealOk = when (explicitDeal) {
-                "فروش" -> p.deal == "فروش"
-                "رهن کامل" -> p.deal == "رهن کامل"
-                "رهن و اجاره" -> p.deal == "رهن و اجاره"
-                else -> true
-            }
-            fun relevantMoneyValues(): List<Long> = when (p.deal) {
-                "فروش" -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
-                "رهن کامل" -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
-                else -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L, rawMoney(p.rent).toLongOrNull() ?: 0L)
-            }.filter { it > 0L }
-            val numberOk = when {
-                bareBudgetValue != null -> {
-                    val digit = bareBudgetValue
-                    val budget = if (digit > Long.MAX_VALUE / 1_000_000_000L) Long.MAX_VALUE else digit * 1_000_000_000L
-                    relevantMoneyValues().any { it <= budget } ||
-                        (explicitDeal == null && listOf(p.area,p.floor,p.buildingFloors,p.unitsPerFloor,p.unitCount).any { rawMoney(it).contains(queryBody) })
-                }
-                amountTokens.isNotEmpty() -> amountTokens.all { token ->
-                    val numericText = token.groupValues[1].replace(",", ".").replace("٬", "")
-                    val numeric = numericText.toDoubleOrNull() ?: 0.0
-                    val multiplier = when (token.groupValues[2]) {
-                        "میلیارد" -> 1_000_000_000.0
-                        "میلیون" -> 1_000_000.0
-                        "هزار" -> 1_000.0
-                        else -> 1.0
-                    }
-                    val budget = numeric * multiplier
-                    val before = queryBody.substring(0, token.range.first)
-                    val values = when {
-                        before.contains("اجاره") -> listOf(rawMoney(p.rent).toLongOrNull() ?: 0L)
-                        before.contains("رهن") || before.contains("پیش") -> listOf(rawMoney(p.deposit).toLongOrNull() ?: 0L)
-                        before.contains("فروش") || before.contains("قیمت") -> listOf(rawMoney(p.price).toLongOrNull() ?: 0L)
-                        else -> relevantMoneyValues()
-                    }.filter { it > 0L }
-                    val isCeiling = multiplier > 1.0 || before.contains("تا") || (multiplier == 1.0 && numericText.length <= 3)
-                    values.any { value ->
-                        (if (isCeiling) value.toDouble() <= budget else value.toDouble() == budget) ||
-                            (explicitDeal == null && value.toString().contains(numericText.replace(".", "")))
-                    }
-                }
-                else -> true
-            }
-            textOk && dealOk && numberOk
-        }
-        val section = activeSection
-        val sectionItems = if (section == null || query.isNotBlank()) found else when(section) {
-            "فروش" -> found.filter { it.deal == "فروش" }
-            "رهن" -> found.filter { it.deal == "رهن کامل" }
-            "رهن و اجاره" -> found.filter { it.deal == "رهن و اجاره" }
-            "کلنگی و مستغلات" -> found.filter { it.kind == "کلنگی و مستغلات" || it.kind == "زمین و کلنگی" }
-            else -> emptyList()
-        }
-        val items = if (section == null || dealFilter == "همه") sectionItems else sectionItems.filter { it.deal == dealFilter }
-        if (items.isEmpty()) {
-            if (query.isNotBlank()) list.addViewSafely(text("نتیجه‌ای برای این جست‌وجو پیدا نشد.", 14f, muted))
-            else if (section != null) list.addViewSafely(text("در بخش «" + section + "» هنوز فایلی ثبت نشده است.", 14f, muted))
-            return
-        }
-        if (query.isNotBlank()) {
-            if (!searchSubmitted) {
-                list.addViewSafely(text("پیش‌نمایش فایل‌های پیشنهادی — برای دیدن همه، دکمه جست‌وجو روی صفحه‌کلید را بزن", 10f, muted, true))
-                items.take(8).forEach { p ->
-                    val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(8),dp(6),dp(8),dp(6)); background = rounded(Color.WHITE,13,Color.rgb(222,211,188)); isClickable = true; isFocusable = true }
-                    val photoPath = try { val a=JSONArray(p.photos); if(a.length()>0) a.getString(0) else "" } catch (_:Exception) { "" }
-                    val thumb = ImageView(this).apply { scaleType=ImageView.ScaleType.CENTER_CROP; background=rounded(pale,9); if(photoPath.isNotBlank()) try { setImageURI(Uri.parse(photoPath)) } catch (_:Exception) {} }
-                    row.addViewSafely(thumb,LinearLayout.LayoutParams(dp(54),dp(54)).apply { marginEnd=dp(9) })
-                    val details = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-                    details.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },12f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
-                    val money = when(p.deal) { "فروش" -> "فروش: "+formatMoney(p.price); "رهن کامل" -> "رهن: "+formatMoney(p.deposit); else -> "رهن "+formatMoney(p.deposit)+" | اجاره "+formatMoney(p.rent) }
-                    details.addViewSafely(text(money,10f,blue,true).apply { maxLines=1 })
-                    details.addViewSafely(text(p.kind+" • "+p.area+" متر",9f,muted).apply { maxLines=1 })
-                    row.addViewSafely(details,LinearLayout.LayoutParams(0,-2,1f))
-                    row.addViewSafely(text("›",22f,gold,true))
-                    row.setOnClickListener { showPropertyDetails(p) }
-                    list.addViewSafely(row,LinearLayout.LayoutParams(-1,-2).apply { bottomMargin=dp(6) })
-                }
-                if(items.isEmpty()) list.addViewSafely(text("موردی مطابق عبارت واردشده پیدا نشد.",12f,muted))
-                return
-            }
-            list.addViewSafely(text("نتایج جست‌وجو • "+items.size+" فایل",13f,navy,true))
-            items.chunked(2).forEach { pair ->
-                val row = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.TOP }
-                pair.forEach { p ->
-                    val card = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(8),dp(8),dp(8),dp(8)); background=rounded(Color.WHITE,14,Color.rgb(222,211,188)); elevation=dp(2).toFloat(); isClickable=true; isFocusable=true; setOnClickListener { showPropertyDetails(p) } }
-                    val photoPath = try { val a=JSONArray(p.photos); if(a.length()>0) a.getString(0) else "" } catch (_:Exception) { "" }
-                    val thumb = ImageView(this).apply { scaleType=ImageView.ScaleType.CENTER_CROP; background=rounded(pale,9); if(photoPath.isNotBlank()) try { setImageURI(Uri.parse(photoPath)) } catch (_:Exception) {} }
-                    card.addViewSafely(thumb,LinearLayout.LayoutParams(-1,dp(96)))
-                    card.addViewSafely(text(p.title.ifBlank { "بدون عنوان" },12f,navy,true).apply { maxLines=1; ellipsize=android.text.TextUtils.TruncateAt.END })
-                    card.addViewSafely(text(p.deal+" • "+p.kind,9f,muted).apply { maxLines=1 })
-                    val money = when(p.deal) { "فروش" -> "قیمت: "+formatMoney(p.price); "رهن کامل" -> "رهن: "+formatMoney(p.deposit); else -> "رهن: "+formatMoney(p.deposit)+"\nاجاره: "+formatMoney(p.rent) }
-                    card.addViewSafely(text(money,10f,blue,true).apply { maxLines=2 })
-                    card.addViewSafely(text("متراژ: "+p.area+" متر",10f,navy))
-                    if(p.deal=="فروش") { val sqm=rawMoney(p.area).toLongOrNull()?:0L; val price=rawMoney(p.price).toLongOrNull()?:0L; if(sqm>0&&price>0) card.addViewSafely(text("هر متر: "+formatMoney((price/sqm).toString()),9f,gold,true)) }
-                    card.addViewSafely(text("تک‌واحدی: "+p.singleUnit,9f,muted))
-                    card.addViewSafely(text("پارکینگ: "+p.parking+" • آسانسور: "+p.elevator,9f,muted).apply { maxLines=2 })
-                    row.addViewSafely(card,LinearLayout.LayoutParams(0,-2,1f).apply { marginStart=dp(4); marginEnd=dp(4); bottomMargin=dp(8) })
-                }
-                if(pair.size==1) row.addViewSafely(View(this),LinearLayout.LayoutParams(0,1,1f))
-                list.addViewSafely(row,LinearLayout.LayoutParams(-1,-2))
-            }
-            return
-        }
-        if (displayMode == "grid") {
-            val grid = GridLayout(this).apply { columnCount = 4; alignmentMode = GridLayout.ALIGN_BOUNDS }
-            items.forEach { p ->
-                val card = makeCard(p, true)
-                val lp = GridLayout.LayoutParams().apply {
-                    width = 0; height = dp(190); columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                    setMargins(dp(2),dp(3),dp(2),dp(3))
-                }
-                grid.addViewSafely(card, lp)
-            }
-            list.addViewSafely(grid)
-        } else {
-            items.forEach { p ->
-                val card = makeCard(p, false)
-                list.addViewSafely(card, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(9) })
-            }
-        }
-    }
-
-    private fun makeCard(p: Property, compact: Boolean): View {
-        val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(if (compact) 4 else 12),dp(if (compact) 5 else 10),dp(if (compact) 4 else 12),dp(if (compact) 5 else 10))
-            background = rounded(Color.rgb(27,43,63), 14, Color.rgb(125,103,67))
-        }
-        val photoCount = try { JSONArray(p.photos).length() } catch (_: Exception) { 0 }
-        if (photoCount > 0) {
-            val thumb = ImageView(this).apply {
-                scaleType = ImageView.ScaleType.CENTER_CROP
-                try { setImageURI(Uri.parse(JSONArray(p.photos).getString(0))) } catch (_: Exception) {}
-                background = rounded(pale, 10)
-                setOnClickListener { showGallery(p) }
-            }
-            card.addViewSafely(thumb, LinearLayout.LayoutParams(-1, dp(if (compact) 58 else 115)))
-        } else if (compact) {
-            card.addViewSafely(text("بدون عکس", 10f, muted))
-        }
-        card.addViewSafely(text(p.title.ifBlank { "بدون عنوان" }, if (compact) 11f else 17f, Color.rgb(245,237,220), true))
-        card.addViewSafely(text(p.deal, if (compact) 10f else 12f, Color.rgb(91,190,177), true))
-        card.addViewSafely(text(p.kind, if (compact) 9f else 13f, Color.rgb(177,190,207)))
-        card.addViewSafely(text(p.area + " متر", if (compact) 9f else 12f, Color.rgb(177,190,207)))
-        if (p.address.isNotBlank()) card.addViewSafely(text("آدرس: " + p.address, if (compact) 8f else 11f, Color.rgb(177,190,207)))
-        val sqm = rawMoney(p.area).toLongOrNull() ?: 0L
-        val salePrice = p.price.toLongOrNull() ?: 0L
-        if (p.deal == "فروش" && sqm > 0 && salePrice > 0) {
-            card.addViewSafely(text("هر متر: " + formatMoney((salePrice / sqm).toString()) + " تومان", if (compact) 8f else 11f, Color.rgb(174,133,59), true))
-        }
-        val money = when (p.deal) {
-            "فروش" -> "قیمت: " + formatMoney(p.price)
-            "رهن کامل" -> "رهن: " + formatMoney(p.deposit)
-            else -> "رهن: " + formatMoney(p.deposit) + "\nاجاره: " + formatMoney(p.rent)
-        }
-        card.addViewSafely(text(money, if (compact) 9f else 13f, Color.rgb(245,237,220), true))
-        card.addViewSafely(text("تاریخ ثبت: " + persianDate(p.createdAt), if (compact) 8f else 10f, Color.rgb(177,190,207)).apply { gravity = Gravity.LEFT })
-        if (photoCount > 0) card.addViewSafely(button("عکس‌ها " + photoCount, { showGallery(p) }))
-        val actions = LinearLayout(this).apply { orientation = if (compact) LinearLayout.VERTICAL else LinearLayout.HORIZONTAL }
-        actions.addViewSafely(button("ویرایش", { showEditor(p) }), LinearLayout.LayoutParams(if (compact) -1 else 0, dp(38), if (compact) 0f else 1f))
-        actions.addViewSafely(button("حذف", {
-            AlertDialog.Builder(this).setMessage("این ملک حذف شود؟")
-                .setNegativeButton("انصراف",null).setPositiveButton("حذف") { _,_ -> db.delete(p.id); refreshList() }.show()
-        }), LinearLayout.LayoutParams(if (compact) -1 else 0, dp(38), if (compact) 0f else 1f))
-        card.addViewSafely(actions)
-        card.setOnClickListener { showPropertyDetails(p) }
-        return card
-    }
-
-    private fun openEditorSafely(existing: Property?) {
-        try {
-            showEditor(existing)
-        } catch (e: Exception) {
-            android.util.Log.e("MelkYab", "Unable to open property editor", e)
-            AlertDialog.Builder(this)
-                .setTitle("خطا در باز کردن فرم ملک")
-                .setMessage("فرم باز نشد. لطفاً از این پیام عکس بگیر و بفرست تا علت دقیق خطا را برطرف کنم.\n\n" + (e.localizedMessage ?: e.javaClass.simpleName))
-                .setPositiveButton("باشه", null)
-                .show()
-        }
-    }
-
-    private fun showEditor(existing: Property?) {
-        selectedPhotos = try {
-            if (existing == null) mutableListOf() else {
-                val a=JSONArray(existing.photos); MutableList(a.length()){i->a.getString(i)}
-            }
-        } catch (_: Exception) { mutableListOf() }
-
-        val wrap = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16),dp(8),dp(16),dp(8)) }
-        val scroll = ScrollView(this)
-        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        content.addViewSafely(text("۱. نوع معامله را انتخاب کنید", 14f, navy, true))
-        val deals = listOf("فروش","رهن کامل","رهن و اجاره")
-        val dealSpinner = Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, deals)
-            setSelection(deals.indexOf(existing?.deal).takeIf { it >= 0 } ?: 0)
-        }
-        content.addViewSafely(dealSpinner)
-        content.addViewSafely(text("۲. مشخصات ملک", 14f, navy, true))
-        val kinds = listOf("آپارتمان","خانه و ویلایی","کلنگی و مستغلات","مغازه و تجاری")
-        val spinner = Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, kinds)
-            setSelection(kinds.indexOf(existing?.kind).takeIf { it >= 0 } ?: 0)
-        }
-        content.addViewSafely(text("نوع ملک")); content.addViewSafely(spinner)
-        val title = field("عنوان ملک",existing?.title ?: "")
-        val address = field("آدرس ملک",existing?.address ?: "")
-        val area = field("متراژ (متر)",existing?.area ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
-        val price = moneyField("قیمت کل (تومان)",existing?.price ?: "")
-        val deposit = moneyField("مبلغ رهن (تومان)",existing?.deposit ?: "")
-        val rent = moneyField("اجاره ماهانه (تومان)",existing?.rent ?: "")
-        val notes = field("توضیحات",existing?.notes ?: "").apply { minLines = 3; gravity = Gravity.TOP }
-
-        fun option(label: String, values: List<String>, current: String): Spinner {
-            content.addViewSafely(text(label, 12f, muted, true))
-            return Spinner(this).apply {
-                adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, values)
-                setSelection(values.indexOf(current).takeIf { it >= 0 } ?: 0)
-            }.also { content.addViewSafely(it) }
-        }
-        content.addViewSafely(title); content.addViewSafely(address); content.addViewSafely(area)
-        val pricePerMeter = text("قیمت هر متر: —", 13f, Color.rgb(174,133,59), true).apply {
-            background = rounded(Color.rgb(250,247,239), 12, Color.rgb(208,177,112))
-            setPadding(dp(12), dp(10), dp(12), dp(10))
-        }
-        fun updatePricePerMeter() {
-            val sqm = rawMoney(area.text.toString()).toLongOrNull() ?: 0L
-            val total = rawMoney(price.text.toString()).toLongOrNull() ?: 0L
-            pricePerMeter.text = if (sqm > 0 && total > 0) "قیمت هر متر: " + formatMoney((total / sqm).toString()) + " تومان" else "قیمت هر متر: —"
-        }
-        val meterWatcher = object: TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { updatePricePerMeter() }
-            override fun afterTextChanged(s: Editable?) {}
-        }
-        area.addTextChangedListener(meterWatcher)
-        price.addTextChangedListener(meterWatcher)
-        val priceLabel = text("قیمت فروش", 12f, muted, true)
-        val depositLabel = text("مبلغ رهن", 12f, muted, true)
-        val rentLabel = text("اجاره ماهانه", 12f, muted, true)
-        fun attachAmountSuggestions(target: EditText, fieldName: String) {
-            val block = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
-            block.addViewSafely(text("مبالغ پیشنهادی $fieldName",9f,muted,true))
-            val horizontal = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false }
-            val suggestions = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-            }
-            horizontal.addViewSafely(suggestions)
-            block.addViewSafely(horizontal, LinearLayout.LayoutParams(-1,-2))
-            content.addViewSafely(block, LinearLayout.LayoutParams(-1,-2).apply { bottomMargin = dp(5) })
-            target.addTextChangedListener(object : TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-                override fun afterTextChanged(s: Editable?) {
-                    val rawTyped = s?.toString() ?: ""
-                    val typedDigits = rawMoney(rawTyped)
-                    val seed = typedDigits.toLongOrNull() ?: 0L
-                    suggestions.removeAllViews()
-                    if (typedDigits.length !in 1..3 || seed <= 0L) { block.visibility = View.GONE; return }
-                    block.visibility = View.VISIBLE
-                    val scales = listOf(1_000_000L,10_000_000L,100_000_000L,1_000_000_000L,10_000_000_000L)
-                    scales.forEach { scale ->
-                        val amount = scaledSuggestionAmount(seed, scale)
-                        val label = compactMoneyLabel(amount)
-                        val chip = TextView(this@MainActivity).apply {
-                            text = label
-                            textSize = 10f
-                            setTextColor(blue)
-                            gravity = Gravity.CENTER
-                            setPadding(dp(8),dp(5),dp(8),dp(5))
-                            background = rounded(Color.WHITE,8,Color.rgb(220,227,236))
-                            isClickable = true
-                            isFocusable = true
-                            setOnClickListener {
-                                // Store the exact toman amount, not the compact billion/million label.
-                                target.setText(amount.toString())
-                                target.setSelection(target.text.length)
-                            }
-                        }
-                        suggestions.addViewSafely(chip,LinearLayout.LayoutParams(-2,-2).apply { marginStart=dp(5) })
-                    }
-                }
-            })
-        }
-        content.addViewSafely(priceLabel)
-        content.addViewSafely(price)
-        attachAmountSuggestions(price,"قیمت")
-        content.addViewSafely(pricePerMeter)
-        content.addViewSafely(depositLabel)
-        content.addViewSafely(deposit)
-        attachAmountSuggestions(deposit,"رهن")
-        content.addViewSafely(rentLabel)
-        content.addViewSafely(rent)
-        attachAmountSuggestions(rent,"اجاره")
-
-        content.addViewSafely(text("۳. جزئیات ساختمان و امکانات", 14f, navy, true))
-        val buildingFloors = field("تعداد طبقات ساختمان", existing?.buildingFloors ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
-        val floor = field("طبقه ملک", existing?.floor ?: "").apply { inputType = InputType.TYPE_CLASS_NUMBER }
-        content.addViewSafely(buildingFloors)
-        content.addViewSafely(floor)
-        content.addViewSafely(text("تک‌واحدی؟", 12f, muted, true))
-        val singleUnitGroup = RadioGroup(this).apply {
-            orientation = RadioGroup.VERTICAL
-            setPadding(dp(8), dp(2), dp(8), dp(2))
-        }
-        val singleYes = RadioButton(this).apply { text = "بله"; textSize = 14f; isChecked = (existing?.singleUnit ?: "بله") == "بله" }
-        val singleNo = RadioButton(this).apply { text = "خیر"; textSize = 14f; isChecked = existing?.singleUnit == "خیر" }
-        singleUnitGroup.addView(singleYes)
-        singleUnitGroup.addView(singleNo)
-        content.addViewSafely(singleUnitGroup, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(5) })
-        val unitsLabel = text("تعداد واحد در هر طبقه", 12f, muted, true)
-        val unitsPerFloor = Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, listOf("۲","۳","۴","۵"))
-            setSelection(listOf("۲","۳","۴","۵").indexOf(existing?.unitsPerFloor).takeIf { it >= 0 } ?: 0)
-        }
-        fun updateUnitsVisibility() {
-            val visible = singleNo.isChecked
-            unitsLabel.visibility = if (visible) View.VISIBLE else View.GONE
-            unitsPerFloor.visibility = if (visible) View.VISIBLE else View.GONE
-        }
-        singleUnitGroup.setOnCheckedChangeListener { _, _ -> updateUnitsVisibility() }
-        content.addViewSafely(unitsLabel)
-        content.addViewSafely(unitsPerFloor)
-        updateUnitsVisibility()
-        val yesNo = listOf("نامشخص", "دارد", "ندارد")
-        val parking = option("پارکینگ", yesNo, existing?.parking ?: "نامشخص")
-        val elevator = option("آسانسور", yesNo, existing?.elevator ?: "نامشخص")
-        val storage = option("انباری", yesNo, existing?.storage ?: "نامشخص")
-        val balcony = option("بالکن", yesNo, existing?.balcony ?: "نامشخص")
-        val cooling = option("سیستم سرمایش", listOf("نامشخص","کولر آبی","کولر گازی","داکت اسپلیت","چیلر","فن‌کویل","بدون سیستم"), existing?.cooling ?: "نامشخص")
-        val heating = option("سیستم گرمایش", listOf("نامشخص","پکیج و رادیاتور","موتورخانه و رادیاتور","بخاری","گرمایش از کف","داکت اسپلیت","فن‌کویل","بدون سیستم"), existing?.heating ?: "نامشخص")
-        val direction = option("جهت ملک", listOf("نامشخص","شمالی","جنوبی","شرقی","غربی","دوکله"), existing?.direction ?: "نامشخص")
-        val facade = option("نمای ساختمان", listOf("نامشخص","سنگ","آجر","کامپوزیت","سیمان","ترکیبی","شیشه","سایر"), existing?.facade ?: "نامشخص")
-        val master = option("حمام مستر", yesNo, existing?.master ?: "نامشخص")
-        val toilet = option("نوع سرویس بهداشتی", listOf("نامشخص","ایرانی","فرنگی","هر دو"), existing?.toilet ?: "نامشخص")
-        val cabinet = option("جنس کابینت", listOf("نامشخص","MDF","هایگلاس","ممبران","چوب","فلزی","PVC","سایر"), existing?.cabinet ?: "نامشخص")
-        val flooring = option("جنس کف واحد", listOf("نامشخص","سرامیک","سنگ","پارکت","لمینت","موزاییک","موکت","ترکیبی","سایر"), existing?.flooring ?: "نامشخص")
-
-        fun updateDealFields() {
-            when (dealSpinner.selectedItem.toString()) {
-                "فروش" -> { priceLabel.visibility=View.VISIBLE; price.visibility=View.VISIBLE; depositLabel.visibility=View.GONE; deposit.visibility=View.GONE; rentLabel.visibility=View.GONE; rent.visibility=View.GONE }
-                "رهن کامل" -> { priceLabel.visibility=View.GONE; price.visibility=View.GONE; depositLabel.visibility=View.VISIBLE; deposit.visibility=View.VISIBLE; rentLabel.visibility=View.GONE; rent.visibility=View.GONE }
-                else -> { priceLabel.visibility=View.GONE; price.visibility=View.GONE; depositLabel.visibility=View.VISIBLE; deposit.visibility=View.VISIBLE; rentLabel.visibility=View.VISIBLE; rent.visibility=View.VISIBLE }
-            }
-        }
-        dealSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) { updateDealFields() }
-        }
-        updateDealFields()
-        content.addViewSafely(text("تصاویر ملک", 14f, navy, true))
-        val photoStatus = text("عکس‌های انتخاب‌شده: " + selectedPhotos.size, 12f, muted)
-        content.addViewSafely(photoStatus)
-        content.addViewSafely(button("انتخاب عکس از گوشی", { choosePhotos(); photoStatus.text = "برای به‌روزرسانی تعداد، دوباره فرم را باز کنید." }))
-        content.addViewSafely(button("مشاهده عکس‌های انتخاب‌شده", { showSelectedGallery() }))
-        content.addViewSafely(text("توضیحات", 12f, muted, true)); content.addViewSafely(notes)
-        scroll.addViewSafely(content); wrap.addViewSafely(scroll)
-        AlertDialog.Builder(this).setTitle(if(existing==null) "ثبت ملک جدید" else "ویرایش ملک")
-            .setView(wrap)
-            .setNegativeButton("انصراف",null)
-            .setPositiveButton("ذخیره") { _,_ ->
-                if (title.text.toString().isBlank()) {
-                    Toast.makeText(this,"عنوان ملک را وارد کن",Toast.LENGTH_SHORT).show()
-                } else {
-                    val deal = dealSpinner.selectedItem.toString()
-                    val photos = JSONArray().apply { selectedPhotos.forEach { put(it) } }.toString()
-                    db.save(Property(existing?.id ?: 0L,spinner.selectedItem.toString(),
-                        title.text.toString(),"",rawMoney(area.text.toString()),
-                        if (deal == "فروش") rawMoney(price.text.toString()) else "",
-                        if (deal != "فروش") rawMoney(deposit.text.toString()) else "",
-                        if (deal == "رهن و اجاره") rawMoney(rent.text.toString()) else "",
-                        notes.text.toString(),photos,deal,
-                        "",floor.text.toString(),
-                        parking.selectedItem.toString(),elevator.selectedItem.toString(),
-                        storage.selectedItem.toString(),balcony.selectedItem.toString(),
-                        cooling.selectedItem.toString(),heating.selectedItem.toString(),
-                        direction.selectedItem.toString(),facade.selectedItem.toString(),
-                        master.selectedItem.toString(),toilet.selectedItem.toString(),
-                        cabinet.selectedItem.toString(),flooring.selectedItem.toString(),
-                        existing?.createdAt ?: System.currentTimeMillis(), address.text.toString(),
-                        buildingFloors.text.toString(), if (singleNo.isChecked) "خیر" else "بله",
-                        if (singleNo.isChecked) unitsPerFloor.selectedItem.toString() else "۱"))
-                    refreshList()
-                }
-            }.show()
-    }
-
-    private fun showSelectedGallery() {
-        if (selectedPhotos.isEmpty()) { Toast.makeText(this,"هنوز عکسی انتخاب نشده است",Toast.LENGTH_SHORT).show(); return }
-        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12),dp(8),dp(12),dp(8)) }
-        val sc = ScrollView(this)
-        val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        selectedPhotos.toList().forEachIndexed { index, path ->
-            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-            val img = ImageView(this).apply { scaleType = ImageView.ScaleType.CENTER_CROP; setImageURI(Uri.parse(path)) }
-            row.addViewSafely(img, LinearLayout.LayoutParams(dp(90),dp(75)))
-            row.addViewSafely(text("تصویر " + (index+1),13f), LinearLayout.LayoutParams(0,-2,1f))
-            row.addViewSafely(button("حذف", { selectedPhotos.remove(path); Toast.makeText(this,"عکس از فهرست انتخاب‌ها حذف شد؛ فرم را دوباره باز کن.",Toast.LENGTH_SHORT).show() }))
-            col.addViewSafely(row)
-        }
-        sc.addViewSafely(col); box.addViewSafely(sc)
-        AlertDialog.Builder(this).setTitle("عکس‌های انتخاب‌شده").setView(box).setPositiveButton("بستن",null).show()
-    }
-
-    private fun handleSystemBack() {
-        if (activeSection != null) {
-            activeSection = null
-            dealFilter = "همه"
-            render()
-        } else {
-            finish()
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    override fun onBackPressed() {
-        handleSystemBack()
-    }
-
-    override fun onDestroy() {
-        if (Build.VERSION.SDK_INT >= 33) {
-            systemBackCallback?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
-        }
-        db.close()
-        super.onDestroy()
-    }
-}

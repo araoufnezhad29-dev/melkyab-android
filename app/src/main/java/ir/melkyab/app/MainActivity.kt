@@ -129,9 +129,9 @@ class MainActivity : Activity() {
         GradientDrawable(
             GradientDrawable.Orientation.TL_BR,
             if (stronger) intArrayOf(
-                Color.argb(76, 10, 22, 38),
-                Color.argb(58, 28, 45, 64),
-                Color.argb(70, 8, 19, 34)
+                Color.argb(88, 10, 22, 38),
+                Color.argb(72, 28, 45, 64),
+                Color.argb(82, 8, 19, 34)
             ) else intArrayOf(
                 Color.argb(44, 12, 27, 45),
                 Color.argb(26, 39, 58, 78),
@@ -139,7 +139,7 @@ class MainActivity : Activity() {
             )
         ).apply {
             cornerRadius = dp(radius).toFloat()
-            setStroke(dp(1), Color.argb(105, 225, 237, 248))
+            setStroke(dp(1), Color.argb(125, 225, 237, 248))
         }
 
     private fun choosePhotos() {
@@ -579,7 +579,7 @@ class MainActivity : Activity() {
             setPadding(dp(8),dp(3),dp(8),dp(3))
             background = GradientDrawable(
                 GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.argb(68,13,27,47), Color.argb(52,38,58,82), Color.argb(64,13,27,47))
+                intArrayOf(Color.argb(82,13,27,47), Color.argb(66,38,58,82), Color.argb(78,13,27,47))
             ).apply { cornerRadius = dp(21).toFloat(); setStroke(dp(1), Color.rgb(205,166,91)) }
             elevation = dp(6).toFloat()
             isClickable = true
@@ -630,9 +630,9 @@ class MainActivity : Activity() {
                     gravity = Gravity.CENTER
                     setPadding(dp(5),dp(3),dp(5),dp(3))
                     background = GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                        intArrayOf(Color.argb(48,28,44,64), Color.argb(34,20,34,52))).apply {
+                        intArrayOf(Color.argb(62,28,44,64), Color.argb(48,20,34,52))).apply {
                         cornerRadius = dp(25).toFloat()
-                        setStroke(dp(1), Color.argb(105,225,237,248))
+                        setStroke(dp(1), Color.argb(122,225,237,248))
                     }
                     elevation = dp(5).toFloat()
                     isClickable = true
@@ -673,7 +673,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), dp(8), dp(12), dp(8))
             background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.argb(82,20,126,132), Color.argb(68,13,73,91))).apply {
+                intArrayOf(Color.argb(94,20,126,132), Color.argb(80,13,73,91))).apply {
                 cornerRadius = dp(20).toFloat()
                 setStroke(dp(1), Color.rgb(205,166,91))
             }
